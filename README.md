@@ -1,7 +1,13 @@
 The model simulates an epidemic in Switzerland and works as follows:
 
-mesh_generator.py uses the border points of Switzerland in test.xlsx to create a mesh and saves it in the folder mesh
+p2_mesh_generator.py generates a cartesian mesh
 
-sir_model_adaptive.py solves the equations and saves pictures of the solution in Videomaker/Images
+p2_diffusion_writer.py and p2_diffusion_maker.py read in files from /shapefiles and create a non constant diffusion coefficient for switzerland and functions for population density and the transmission rate beta. These functions are saved in /difffun
 
-videomaker.py creates a video from the created images
+p2_cantons_writer.py and p2_cantons_maker.py create functions to represent every single canton and the data to take commuters over long distances into account
+
+p2_adaptive_no_lc.py is a simulation of the pandemic without the long connections between cantons
+
+p2_model_adaptive.py simulates the pandemic with commuters over long distances
+
+Videomaker/videomaker.py creates a video from the created images
