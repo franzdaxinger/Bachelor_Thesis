@@ -1,0 +1,664 @@
+"""
+Approach to solve Epidemic Model with Diffusion in 2D
+
+"""
+
+from __future__ import print_function
+import matplotlib
+matplotlib.use('Agg')
+from fenics import *
+from dolfin import *
+import matplotlib.pyplot as plt
+import matplotlib.tri as tri
+import shapefile
+import os
+import geopandas as gpd
+import pandas as pd
+from shapely.geometry import Point
+import numpy as np
+import math
+
+# define all needed parameters
+T = 60.0                                # final time in days
+dt = 1.0/24.0                           # time step size at beginning
+theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
+oneoverd = Constant(1.0 / 4.0)          # one over average duration of infection
+oneoverz = Constant(1.0 / 3.0)          # one over average latency period
+
+theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
+t = 0.0                                 # global time
+timestep = [0.0]                        # array to safe the timesteps
+rho = 0.1                               # safety factor
+tol = 100.0                             # tolerance of the l2 norm
+toldt = 0.01                            # smallest allowed timestep
+
+
+# get mesh from file in folder mesh
+mesh = Mesh('mesh/mesh2d.xml.gz')
+
+# get data on commuters between cantons and write to array
+array_alpha = np.genfromtxt('shapefiles/alpha.txt')
+array_beta = np.genfromtxt('shapefiles/beta.txt')
+
+# read border points from txt file
+x_border = np.genfromtxt('shapefiles/switzerland_x.txt')
+y_border = np.genfromtxt('shapefiles/switzerland_y.txt')
+
+# define function space for system
+P1 = FiniteElement('P', triangle, 1)
+element = MixedElement([P1, P1, P1])
+V = FunctionSpace(mesh, element)
+W = FunctionSpace(mesh, P1)
+
+# define test functions
+v_1, v_2, v_3 = TestFunctions(V)
+
+# define used functions
+SEI_low = Function(V)
+SEI_half = Function(V)
+SEI_high = Function(V)
+SEI_n = Function(V)
+d = Function(V)
+source_s_n = Function(W)
+source_e_n = Function(W)
+source_i_n = Function(W)
+source_s_low = Function(W)
+source_e_low = Function(W)
+source_i_low = Function(W)
+source_s_half = Function(W)
+source_e_half = Function(W)
+source_i_half = Function(W)
+source_s_high = Function(W)
+source_e_high = Function(W)
+source_i_high = Function(W)
+
+
+# create files and parameters for visualization output and time
+name = 100000
+triang = tri.Triangulation(*mesh.coordinates().reshape((-1, 2)).T,
+                           triangles=mesh.cells())
+bounds = np.linspace(0.0275,1.0725,40)
+bounde = np.linspace(0.01,0.39,40)
+boundi = np.linspace(0.01,0.39,40)
+
+# setting Initial Conditions
+SEI_0 = Expression(('1.0',
+                    '0.5*exp(-0.0000001*(pow(x[0]-684000.0,2)+pow(x[1]-247000.0,2))) + '
+                    '0.5*exp(-0.0000001*(pow(x[0]-600000.0,2)+pow(x[1]-165000.0,2))) + '
+                    '0.4*exp(-0.0000001*(pow(x[0]-620000.0,2)+pow(x[1]-215000.0,2))) + '
+                    '0.3*exp(-0.0000001*(pow(x[0]-710000.0,2)+pow(x[1]-220000.0,2)))',
+                    '0.0'),
+                    degree=2)
+SEI_n = project(SEI_0, V)
+
+#Diffusion, inverse population density and beta from files
+f1 = Function(W)
+f_in = XDMFFile("difffun/diff.xdmf")
+f_in.read_checkpoint(f1, "g", 0)
+f1.set_allow_extrapolation(True)
+d_0 = Expression(('function',
+                  'function',
+                  'function'),
+                 function = f1, degree = 2)
+d = project(d_0, V)
+
+f2 = Function(W)
+f_in = XDMFFile("difffun/rhoinv.xdmf")
+f_in.read_checkpoint(f2, "g", 0)
+f2.set_allow_extrapolation(True)
+rhoinv_0 = Expression(('function',
+                       'function',
+                       'function'),
+                       function = f2, degree = 2)
+rhoinv = project(rhoinv_0, V)
+
+f3 = Function(W)
+f_in = XDMFFile("difffun/beta.xdmf")
+f_in.read_checkpoint(f3, "g", 0)
+f3.set_allow_extrapolation(True)
+beta = project(f3, W)
+
+# check diffusion, 1/rho and beta and plot S, E, I for t=0 and safe as images
+_S_0, _E_0, _I_0 = SEI_n.split()
+_d_s, _d_i, _d_r = d.split()
+_rhoinv1, _rhoinv2, _rhoinv3 = rhoinv.split()
+
+mybound1 = np.linspace(50.0, 1950.0, 40)
+mybound2 = np.linspace(10000.0, 390000.0, 40)
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('Diffusion of neighboring municipalities')
+plt.plot(x_border, y_border, color='r')
+Z = _d_s.compute_vertex_values(mesh)
+c = plot(interpolate(_d_s, W), vmin = 0.0, vmax = 2000.0,  mode='color')
+plt.tricontourf(triang, Z, vmin = 0.0, vmax = 2000.0, levels = mybound1, extend = 'both')
+plt.colorbar(c)
+plt.savefig('checkdiff1.jpg')
+plt.clf()
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('1 / population density')
+plt.plot(x_border, y_border, color='r')
+Z = _rhoinv1.compute_vertex_values(mesh)
+c = plot(interpolate(_rhoinv1, W), vmin=0.0, vmax=400000.0, mode='color')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=400000.0, levels = mybound2, extend = 'both')
+plt.colorbar(c)
+plt.savefig('checkrho1.jpg')
+plt.clf()
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('beta')
+plt.plot(x_border, y_border, color='r')
+Z = beta.compute_vertex_values(mesh)
+c = plot(interpolate(beta, W))
+plt.tricontourf(triang, Z)
+plt.colorbar(c)
+plt.savefig('checkbeta1.jpg')
+plt.clf()
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('Percentage of initial population that is susceptible')
+plt.plot(x_border, y_border, color='r')
+Z = _S_0.compute_vertex_values(mesh)
+c = plot(interpolate(_S_0, W), mode='color', vmin=0.0, vmax=1.1)
+plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels = bounds, extend = 'both')
+plt.colorbar(c)
+plt.savefig('Videomaker/Images_S/' + str(name) + '.jpg')
+plt.clf()
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('Percentage of initial population that is exposed')
+plt.plot(x_border, y_border, color='r')
+Z = _E_0.compute_vertex_values(mesh)
+c = plot(interpolate(_E_0, W), mode='color', vmin=0, vmax=0.4)
+plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels = bounde, extend = 'both')
+plt.colorbar(c)
+plt.savefig('Videomaker/Images_E/' + str(name) + '.jpg')
+plt.clf()
+
+plt.xlabel('space [x]')
+plt.ylabel('space [y]')
+plt.xticks([])
+plt.yticks([])
+plt.title('Percentage of initial population that is infected')
+plt.plot(x_border, y_border, color='r')
+Z = _I_0.compute_vertex_values(mesh)
+c = plot(interpolate(_I_0, W), mode='color', vmin=0, vmax=0.4)
+plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels = boundi, extend = 'both')
+plt.colorbar(c)
+plt.savefig('Videomaker/Images_I/' + str(name) + '.jpg')
+plt.clf()
+
+name += 1
+
+# split system functions to access components
+S_low, E_low, I_low = split(SEI_low)
+S_half, E_half, I_half = split(SEI_half)
+S_high, E_high, I_high = split(SEI_high)
+S_n, E_n, I_n = split(SEI_n)
+d_s, d_e, d_i = split(d)
+rhoinv_s, rhoinv_e, rhoinv_i = split(rhoinv)
+
+
+# get functions and areas to represent cantons
+if 1 == 1:
+    c1 = Function(W)
+    f_in = XDMFFile("cantfun/01.xdmf")
+    f_in.read_checkpoint(c1, "g", 0)
+    c1.set_allow_extrapolation(True)
+
+    c2 = Function(W)
+    f_in = XDMFFile("cantfun/02.xdmf")
+    f_in.read_checkpoint(c2, "g", 0)
+    c2.set_allow_extrapolation(True)
+
+    c3 = Function(W)
+    f_in = XDMFFile("cantfun/03.xdmf")
+    f_in.read_checkpoint(c3, "g", 0)
+    c3.set_allow_extrapolation(True)
+
+    c4 = Function(W)
+    f_in = XDMFFile("cantfun/04.xdmf")
+    f_in.read_checkpoint(c4, "g", 0)
+    c4.set_allow_extrapolation(True)
+
+    c5 = Function(W)
+    f_in = XDMFFile("cantfun/05.xdmf")
+    f_in.read_checkpoint(c5, "g", 0)
+    c5.set_allow_extrapolation(True)
+
+    c6 = Function(W)
+    f_in = XDMFFile("cantfun/06.xdmf")
+    f_in.read_checkpoint(c6, "g", 0)
+    c6.set_allow_extrapolation(True)
+
+    c7 = Function(W)
+    f_in = XDMFFile("cantfun/07.xdmf")
+    f_in.read_checkpoint(c7, "g", 0)
+    c7.set_allow_extrapolation(True)
+
+    c8 = Function(W)
+    f_in = XDMFFile("cantfun/08.xdmf")
+    f_in.read_checkpoint(c8, "g", 0)
+    c8.set_allow_extrapolation(True)
+
+    c9 = Function(W)
+    f_in = XDMFFile("cantfun/09.xdmf")
+    f_in.read_checkpoint(c9, "g", 0)
+    c9.set_allow_extrapolation(True)
+
+    c10 = Function(W)
+    f_in = XDMFFile("cantfun/10.xdmf")
+    f_in.read_checkpoint(c10, "g", 0)
+    c10.set_allow_extrapolation(True)
+
+    c11 = Function(W)
+    f_in = XDMFFile("cantfun/11.xdmf")
+    f_in.read_checkpoint(c11, "g", 0)
+    c11.set_allow_extrapolation(True)
+
+    c12 = Function(W)
+    f_in = XDMFFile("cantfun/12.xdmf")
+    f_in.read_checkpoint(c12, "g", 0)
+    c12.set_allow_extrapolation(True)
+
+    c13 = Function(W)
+    f_in = XDMFFile("cantfun/13.xdmf")
+    f_in.read_checkpoint(c13, "g", 0)
+    c13.set_allow_extrapolation(True)
+
+    c14 = Function(W)
+    f_in = XDMFFile("cantfun/14.xdmf")
+    f_in.read_checkpoint(c14, "g", 0)
+    c14.set_allow_extrapolation(True)
+
+    c15 = Function(W)
+    f_in = XDMFFile("cantfun/15.xdmf")
+    f_in.read_checkpoint(c15, "g", 0)
+    c15.set_allow_extrapolation(True)
+
+    c16 = Function(W)
+    f_in = XDMFFile("cantfun/16.xdmf")
+    f_in.read_checkpoint(c16, "g", 0)
+    c16.set_allow_extrapolation(True)
+
+    c17 = Function(W)
+    f_in = XDMFFile("cantfun/17.xdmf")
+    f_in.read_checkpoint(c17, "g", 0)
+    c17.set_allow_extrapolation(True)
+
+    c18 = Function(W)
+    f_in = XDMFFile("cantfun/18.xdmf")
+    f_in.read_checkpoint(c18, "g", 0)
+    c18.set_allow_extrapolation(True)
+
+    c19 = Function(W)
+    f_in = XDMFFile("cantfun/19.xdmf")
+    f_in.read_checkpoint(c19, "g", 0)
+    c19.set_allow_extrapolation(True)
+
+    c20 = Function(W)
+    f_in = XDMFFile("cantfun/20.xdmf")
+    f_in.read_checkpoint(c20, "g", 0)
+    c20.set_allow_extrapolation(True)
+
+    c21 = Function(W)
+    f_in = XDMFFile("cantfun/21.xdmf")
+    f_in.read_checkpoint(c21, "g", 0)
+    c21.set_allow_extrapolation(True)
+
+    c22 = Function(W)
+    f_in = XDMFFile("cantfun/22.xdmf")
+    f_in.read_checkpoint(c22, "g", 0)
+    c22.set_allow_extrapolation(True)
+
+    c23 = Function(W)
+    f_in = XDMFFile("cantfun/23.xdmf")
+    f_in.read_checkpoint(c23, "g", 0)
+    c23.set_allow_extrapolation(True)
+
+    c24 = Function(W)
+    f_in = XDMFFile("cantfun/24.xdmf")
+    f_in.read_checkpoint(c24, "g", 0)
+    c24.set_allow_extrapolation(True)
+
+    c25 = Function(W)
+    f_in = XDMFFile("cantfun/25.xdmf")
+    f_in.read_checkpoint(c25, "g", 0)
+    c25.set_allow_extrapolation(True)
+
+    c26 = Function(W)
+    f_in = XDMFFile("cantfun/26.xdmf")
+    f_in.read_checkpoint(c26, "g", 0)
+    c26.set_allow_extrapolation(True)
+    cant_area = [0.0]
+    cant_area.append(assemble(c1 * dx))
+    cant_area.append(assemble(c2 * dx))
+    cant_area.append(assemble(c3 * dx))
+    cant_area.append(assemble(c4 * dx))
+    cant_area.append(assemble(c5 * dx))
+    cant_area.append(assemble(c6 * dx))
+    cant_area.append(assemble(c7 * dx))
+    cant_area.append(assemble(c8 * dx))
+    cant_area.append(assemble(c9 * dx))
+    cant_area.append(assemble(c10 * dx))
+    cant_area.append(assemble(c11 * dx))
+    cant_area.append(assemble(c12 * dx))
+    cant_area.append(assemble(c13 * dx))
+    cant_area.append(assemble(c14 * dx))
+    cant_area.append(assemble(c15 * dx))
+    cant_area.append(assemble(c16 * dx))
+    cant_area.append(assemble(c17 * dx))
+    cant_area.append(assemble(c18 * dx))
+    cant_area.append(assemble(c19 * dx))
+    cant_area.append(assemble(c20 * dx))
+    cant_area.append(assemble(c21 * dx))
+    cant_area.append(assemble(c22 * dx))
+    cant_area.append(assemble(c23 * dx))
+    cant_area.append(assemble(c24 * dx))
+    cant_area.append(assemble(c25 * dx))
+    cant_area.append(assemble(c26 * dx))
+
+# function to have access to canton function i
+def getcantonfun(i):
+    if i == 1:
+        return c1
+    elif i == 2:
+        return c2
+    elif i == 3:
+        return c3
+    elif i == 4:
+        return c4
+    elif i == 5:
+        return c5
+    elif i == 6:
+        return c6
+    elif i == 7:
+        return c7
+    elif i == 8:
+        return c8
+    elif i == 9:
+        return c9
+    elif i == 10:
+        return c10
+    elif i == 11:
+        return c11
+    elif i == 12:
+        return c12
+    elif i == 13:
+        return c13
+    elif i == 14:
+        return c14
+    elif i == 15:
+        return c15
+    elif i == 16:
+        return c16
+    elif i == 17:
+        return c17
+    elif i == 18:
+        return c18
+    elif i == 19:
+        return c19
+    elif i == 20:
+        return c20
+    elif i == 21:
+        return c21
+    elif i == 22:
+        return c22
+    elif i == 23:
+        return c23
+    elif i == 24:
+        return c24
+    elif i == 25:
+        return c25
+    else:
+        return c26
+
+# time stepping
+n = 0
+while t < T:
+    # Define source term for long connections
+    source_s_0 = Expression('0.0', degree=2)
+    source_s_n = project(source_s_0, W)
+    source_s_low = project(source_s_0, W)
+    source_s_half = project(source_s_0, W)
+    source_s_high = project(source_s_0, W)
+    source_e_0 = Expression('0.0', degree=2)
+    source_e_n = project(source_e_0, W)
+    source_e_low = project(source_e_0, W)
+    source_e_half = project(source_e_0, W)
+    source_e_high = project(source_e_0, W)
+    source_i_0 = Expression('0.0', degree=2)
+    source_i_n = project(source_i_0, W)
+    source_i_low = project(source_i_0, W)
+    source_i_half = project(source_i_0, W)
+    source_i_high = project(source_i_0, W)
+
+    # compute number of susceptible, exposed and infected in every canton in advance and save as array
+    array_S_n = [0.0]
+    array_E_n = [0.0]
+    array_I_n = [0.0]
+    array_S_low = [0.0]
+    array_E_low = [0.0]
+    array_I_low = [0.0]
+    array_S_half = [0.0]
+    array_E_half = [0.0]
+    array_I_half = [0.0]
+    array_S_high = [0.0]
+    array_E_high = [0.0]
+    array_I_high = [0.0]
+    n = 1
+    print("starting to calculate integrals")
+    while n < 27:
+        array_S_n.append(assemble(S_n * getcantonfun(n) * dx))
+        array_E_n.append(assemble(E_n * getcantonfun(n) * dx))
+        array_I_n.append(assemble(I_n * getcantonfun(n) * dx))
+        array_S_low.append(assemble(S_low * getcantonfun(n) * dx))
+        array_E_low.append(assemble(E_low * getcantonfun(n) * dx))
+        array_I_low.append(assemble(I_low * getcantonfun(n) * dx))
+        array_S_half.append(assemble(S_half * getcantonfun(n) * dx))
+        array_E_half.append(assemble(E_half * getcantonfun(n) * dx))
+        array_I_half.append(assemble(I_half * getcantonfun(n) * dx))
+        array_S_high.append(assemble(S_high * getcantonfun(n) * dx))
+        array_E_high.append(assemble(E_high * getcantonfun(n) * dx))
+        array_I_high.append(assemble(I_high * getcantonfun(n) * dx))
+        n += 1
+    print("finished calculating integrals")
+
+    # calculate source terms for current time, low dt, half dt and high dt
+    print("initializing sources now ...")
+    ID_KT_i = 1
+    while ID_KT_i < 27:
+        ID_KT_j = 1
+        factor_s_n = 0.0
+        factor_e_n = 0.0
+        factor_i_n = 0.0
+        factor_s_low = 0.0
+        factor_e_low = 0.0
+        factor_i_low = 0.0
+        factor_s_half = 0.0
+        factor_e_half = 0.0
+        factor_i_half = 0.0
+        factor_s_high = 0.0
+        factor_e_high = 0.0
+        factor_i_high = 0.0
+        while ID_KT_j < 27:
+            index = (ID_KT_i - 1) * 26 + ID_KT_j - 1
+            factor_s_n += array_alpha[index] * array_S_n[ID_KT_j] - array_beta[index] * array_S_n[ID_KT_i]
+            factor_e_n += array_alpha[index] * array_E_n[ID_KT_j] - array_beta[index] * array_E_n[ID_KT_i]
+            factor_i_n += array_alpha[index] * array_I_n[ID_KT_j] - array_beta[index] * array_I_n[ID_KT_i]
+
+            factor_s_low += array_alpha[index] * array_S_low[ID_KT_j] - array_beta[index] * array_S_low[ID_KT_i]
+            factor_e_low += array_alpha[index] * array_E_low[ID_KT_j] - array_beta[index] * array_E_low[ID_KT_i]
+            factor_i_low += array_alpha[index] * array_I_low[ID_KT_j] - array_beta[index] * array_I_low[ID_KT_i]
+
+            factor_s_half += array_alpha[index] * array_S_half[ID_KT_j] - array_beta[index] * array_S_half[ID_KT_i]
+            factor_e_half += array_alpha[index] * array_E_half[ID_KT_j] - array_beta[index] * array_E_half[ID_KT_i]
+            factor_i_half += array_alpha[index] * array_I_half[ID_KT_j] - array_beta[index] * array_I_half[ID_KT_i]
+
+            factor_s_high += array_alpha[index] * array_S_high[ID_KT_j] - array_beta[index] * array_S_high[ID_KT_i]
+            factor_e_high += array_alpha[index] * array_E_high[ID_KT_j] - array_beta[index] * array_E_high[ID_KT_i]
+            factor_i_high += array_alpha[index] * array_I_high[ID_KT_j] - array_beta[index] * array_I_high[ID_KT_i]
+            ID_KT_j += 1
+
+        source_s_n = project(source_s_n + factor_s_n * getcantonfun(ID_KT_i))
+        source_e_n = project(source_e_n + factor_e_n * getcantonfun(ID_KT_i))
+        source_i_n = project(source_i_n + factor_i_n * getcantonfun(ID_KT_i))
+        source_s_low = project(source_s_low + factor_s_low * getcantonfun(ID_KT_i))
+        source_e_low = project(source_e_low + factor_e_low * getcantonfun(ID_KT_i))
+        source_i_low = project(source_i_low + factor_i_low * getcantonfun(ID_KT_i))
+        source_s_half = project(source_s_half + factor_s_half * getcantonfun(ID_KT_i))
+        source_e_half = project(source_e_half + factor_e_half * getcantonfun(ID_KT_i))
+        source_i_half = project(source_i_half + factor_i_half * getcantonfun(ID_KT_i))
+        source_s_high = project(source_s_high + factor_s_high * getcantonfun(ID_KT_i))
+        source_e_high = project(source_e_high + factor_e_high * getcantonfun(ID_KT_i))
+        source_i_high = project(source_i_high + factor_i_high * getcantonfun(ID_KT_i))
+        print("source of canton ", ID_KT_i, " finished")
+        ID_KT_i += 1
+
+    # plot one source term to check if everything works
+    plot(source_e_low)
+    plt.savefig('sourceplot.jpg')
+    plt.cla
+
+    # Define variational problem for SEI_low
+    F = S_low * v_1 * dx - S_n * v_1 * dx - theta * dt * (-beta * S_low * I_low * v_1 * dx + \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_low), grad(v_1)) * dx + rhoinv_s * source_s_low * v_1 * dx)) - \
+        (1.0 - theta) * dt *(-beta * S_n * I_n * v_1 * dx + theta_factor * ( - rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
+        E_low * v_2 * dx - E_n * v_2 * dx - theta * dt * (beta * S_low * I_low * v_2 * dx - oneoverz * E_low * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_low), grad(v_2)) * dx + rhoinv_e * source_e_low * v_2 * dx)) - \
+        (1.0 - theta) * dt * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_n), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) + \
+        I_low * v_3 * dx - I_n * v_3 * dx - theta * dt * (oneoverz * E_low * v_3 * dx - oneoverd * I_low * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_low), grad(v_3)) * dx + rhoinv_i * source_i_low * v_3 * dx)) - \
+        (1.0 - theta) * dt * (oneoverz * E_n * v_3 * dx - oneoverd * I_n * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_n), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx))
+
+    Jac = derivative(F, SEI_low, TrialFunction(V))
+
+    # solve variational problem for SEI_low
+    solve(F == 0, SEI_low, J=Jac)
+
+    # Define variational problem for SEI_half
+    F = S_half * v_1 * dx - S_n * v_1 * dx - theta * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n),grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
+        E_half * v_2 * dx - E_n * v_2 * dx - theta * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_n), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) + \
+        I_half * v_3 * dx - I_n * v_3 * dx - theta * dt / 2.0 * (oneoverz * E_half * v_3 * dx - oneoverd * I_half * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_half * v_3 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (oneoverz * E_n * v_3 * dx - oneoverd * I_n * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_n), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx))
+
+    Jac = derivative(F, SEI_half, TrialFunction(V))
+
+    # solve variational problem for SEI_half
+    solve(F == 0, SEI_half, J=Jac)
+
+    # Define variational problem for SEI_high
+    F = S_high * v_1 * dx - S_half * v_1 * dx - theta * dt / 2.0 * (-beta * S_high * I_high * v_1 * dx + \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_high), grad(v_1)) * dx + rhoinv_s * source_s_high * v_1 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) + \
+        E_high * v_2 * dx - E_half * v_2 * dx - theta * dt / 2.0 * (
+        beta * S_high * I_high * v_2 * dx - oneoverz * E_high * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_high), grad(v_2)) * dx + rhoinv_e * source_e_high * v_2 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) + \
+        I_high * v_3 * dx - I_half * v_3 * dx - theta * dt / 2.0 * (oneoverz * E_high * v_3 * dx - oneoverd * I_high * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_high), grad(v_3)) * dx + rhoinv_i * source_i_high * v_3 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (oneoverz * E_half * v_3 * dx - oneoverd * I_half * v_3 * dx + \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_half * v_3 * dx))
+
+    Jac = derivative(F, SEI_high, TrialFunction(V))
+
+    # solve variational problem for SEI_high
+    solve(F == 0, SEI_high, J=Jac)
+
+    # compute error by Richardson extrapolation
+    error = errornorm(SEI_high, SEI_low, 'l2') / 3.0
+    print("This is the error: ", error)
+
+    # compute new timestep
+    dt_new = pow(rho * tol / error, 0.5) * dt
+    if dt_new < toldt:
+        dt_new = toldt
+
+    # if error small enough or minimum timestep reached, update and go to the next timestep
+    if (error < tol) or (dt_new == toldt):
+        n += 1
+        print("This is iteration number: ", n)
+        print("And the time is: ", t)
+        newtime = t + dt
+        oldtime = t
+        # interpolate between timesteps to get plots
+        while (math.floor(newtime) - math.floor(t))>0:
+            SEI_plot = project((SEI_high - SEI_n) * (math.floor(t) + 1.0 - oldtime) / dt + SEI_n, V)
+            _S, _E, _I = SEI_plot.split()
+            plt.xlabel('space [x]')
+            plt.ylabel('space [y]')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title('Percentage of initial population that is susceptible')
+            plt.plot(x_border, y_border, color='r')
+            Z = _S.compute_vertex_values(mesh)
+            c = plot(interpolate(_S, W), mode='color', vmin=0.0, vmax=1.1)
+            plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels=bounds, extend='both')
+            plt.colorbar(c)
+            plt.savefig('Videomaker/Images_S/' + str(name) + '.jpg')
+            plt.clf()
+
+            plt.xlabel('space [x]')
+            plt.ylabel('space [y]')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title('Percentage of initial population that is exposed')
+            plt.plot(x_border, y_border, color='r')
+            Z = _E.compute_vertex_values(mesh)
+            c = plot(interpolate(_E, W), mode='color', vmin=0.0, vmax=0.4)
+            plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=bounde, extend='both')
+            plt.colorbar(c)
+            plt.savefig('Videomaker/Images_E/' + str(name) + '.jpg')
+            plt.clf()
+
+            plt.xlabel('space [x]')
+            plt.ylabel('space [y]')
+            plt.xticks([])
+            plt.yticks([])
+            plt.title('Percentage of initial population that is infected')
+            plt.plot(x_border, y_border, color='r')
+            Z = _I.compute_vertex_values(mesh)
+            c = plot(interpolate(_I, W), mode='color', vmin=0.0, vmax=0.4)
+            plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=boundi, extend='both')
+            plt.colorbar(c)
+            plt.savefig('Videomaker/Images_I/' + str(name) + '.jpg')
+            plt.clf()
+
+            name += 1
+            t = math.floor(t) + 1.0
+
+        t = newtime
+        SEI_n.assign(SEI_high)
+        timestep.append(t)
+
+    dt = dt_new
+
+# print array of timesteps
+print(timestep)
+np.savetxt("timestep.txt", timestep, fmt="%s")
