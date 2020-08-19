@@ -5,6 +5,7 @@ Approach to solve Epidemic Model with Diffusion in 2D
 
 from __future__ import print_function
 import matplotlib
+
 matplotlib.use('Agg')
 from fenics import *
 from dolfin import *
@@ -17,21 +18,21 @@ import pandas as pd
 from shapely.geometry import Point
 import numpy as np
 import math
+import dijitso
 
 # define all needed parameters
-T = 60.0                                # final time in days
-dt = 1.0/24.0                           # time step size at beginning
-theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-oneoverd = Constant(1.0 / 4.0)          # one over average duration of infection
-oneoverz = Constant(1.0 / 3.0)          # one over average latency period
+T = 60.0  # final time in days
+dt = 1.0 / 24.0  # time step size at beginning
+theta_factor = Constant(1.1)  # factor to represent the underreporting of movement
+oneoverd = Constant(1.0 / 4.0)  # one over average duration of infection
+oneoverz = Constant(1.0 / 3.0)  # one over average latency period
 
-theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
-t = 0.0                                 # global time
-timestep = [0.0]                        # array to safe the timesteps
-rho = 0.1                               # safety factor
-tol = 100.0                             # tolerance of the l2 norm
-toldt = 0.01                            # smallest allowed timestep
-
+theta = Constant(0.5)  # theta = 0.5 means Crank-Nicolson
+t = 0.0  # global time
+timestep = [0.0]  # array to safe the timesteps
+rho = 0.1  # safety factor
+tol = 100.0  # tolerance of the l2 norm
+toldt = 0.01  # smallest allowed timestep
 
 # get mesh from file in folder mesh
 mesh = Mesh('mesh/mesh2d.xml.gz')
@@ -72,14 +73,13 @@ source_s_high = Function(W)
 source_e_high = Function(W)
 source_i_high = Function(W)
 
-
 # create files and parameters for visualization output and time
 name = 100000
 triang = tri.Triangulation(*mesh.coordinates().reshape((-1, 2)).T,
                            triangles=mesh.cells())
-bounds = np.linspace(0.0275,1.0725,40)
-bounde = np.linspace(0.01,0.39,40)
-boundi = np.linspace(0.01,0.39,40)
+bounds = np.linspace(0.0275, 1.0725, 40)
+bounde = np.linspace(0.01, 0.39, 40)
+boundi = np.linspace(0.01, 0.39, 40)
 
 # setting Initial Conditions
 SEI_0 = Expression(('1.0',
@@ -88,10 +88,10 @@ SEI_0 = Expression(('1.0',
                     '0.4*exp(-0.0000001*(pow(x[0]-620000.0,2)+pow(x[1]-215000.0,2))) + '
                     '0.3*exp(-0.0000001*(pow(x[0]-710000.0,2)+pow(x[1]-220000.0,2)))',
                     '0.0'),
-                    degree=2)
+                   degree=2)
 SEI_n = project(SEI_0, V)
 
-#Diffusion, inverse population density and beta from files
+# Diffusion, inverse population density and beta from files
 f1 = Function(W)
 f_in = XDMFFile("difffun/diff.xdmf")
 f_in.read_checkpoint(f1, "g", 0)
@@ -99,7 +99,7 @@ f1.set_allow_extrapolation(True)
 d_0 = Expression(('function',
                   'function',
                   'function'),
-                 function = f1, degree = 2)
+                 function=f1, degree=2)
 d = project(d_0, V)
 
 f2 = Function(W)
@@ -109,7 +109,7 @@ f2.set_allow_extrapolation(True)
 rhoinv_0 = Expression(('function',
                        'function',
                        'function'),
-                       function = f2, degree = 2)
+                      function=f2, degree=2)
 rhoinv = project(rhoinv_0, V)
 
 f3 = Function(W)
@@ -133,8 +133,8 @@ plt.yticks([])
 plt.title('Diffusion of neighboring municipalities')
 plt.plot(x_border, y_border, color='r')
 Z = _d_s.compute_vertex_values(mesh)
-c = plot(interpolate(_d_s, W), vmin = 0.0, vmax = 2000.0,  mode='color')
-plt.tricontourf(triang, Z, vmin = 0.0, vmax = 2000.0, levels = mybound1, extend = 'both')
+c = plot(interpolate(_d_s, W), vmin=0.0, vmax=2000.0, mode='color')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=2000.0, levels=mybound1, extend='both')
 plt.colorbar(c)
 plt.savefig('checkdiff1.jpg')
 plt.clf()
@@ -147,7 +147,7 @@ plt.title('1 / population density')
 plt.plot(x_border, y_border, color='r')
 Z = _rhoinv1.compute_vertex_values(mesh)
 c = plot(interpolate(_rhoinv1, W), vmin=0.0, vmax=400000.0, mode='color')
-plt.tricontourf(triang, Z, vmin=0.0, vmax=400000.0, levels = mybound2, extend = 'both')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=400000.0, levels=mybound2, extend='both')
 plt.colorbar(c)
 plt.savefig('checkrho1.jpg')
 plt.clf()
@@ -173,7 +173,7 @@ plt.title('Percentage of initial population that is susceptible')
 plt.plot(x_border, y_border, color='r')
 Z = _S_0.compute_vertex_values(mesh)
 c = plot(interpolate(_S_0, W), mode='color', vmin=0.0, vmax=1.1)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels = bounds, extend = 'both')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels=bounds, extend='both')
 plt.colorbar(c)
 plt.savefig('Videomaker/Images_S/' + str(name) + '.jpg')
 plt.clf()
@@ -186,7 +186,7 @@ plt.title('Percentage of initial population that is exposed')
 plt.plot(x_border, y_border, color='r')
 Z = _E_0.compute_vertex_values(mesh)
 c = plot(interpolate(_E_0, W), mode='color', vmin=0, vmax=0.4)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels = bounde, extend = 'both')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=bounde, extend='both')
 plt.colorbar(c)
 plt.savefig('Videomaker/Images_E/' + str(name) + '.jpg')
 plt.clf()
@@ -199,7 +199,7 @@ plt.title('Percentage of initial population that is infected')
 plt.plot(x_border, y_border, color='r')
 Z = _I_0.compute_vertex_values(mesh)
 c = plot(interpolate(_I_0, W), mode='color', vmin=0, vmax=0.4)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels = boundi, extend = 'both')
+plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=boundi, extend='both')
 plt.colorbar(c)
 plt.savefig('Videomaker/Images_I/' + str(name) + '.jpg')
 plt.clf()
@@ -213,7 +213,6 @@ S_high, E_high, I_high = split(SEI_high)
 S_n, E_n, I_n = split(SEI_n)
 d_s, d_e, d_i = split(d)
 rhoinv_s, rhoinv_e, rhoinv_i = split(rhoinv)
-
 
 # get functions and areas to represent cantons
 if 1 == 1:
@@ -374,6 +373,7 @@ if 1 == 1:
     cant_area.append(assemble(c25 * dx))
     cant_area.append(assemble(c26 * dx))
 
+
 # function to have access to canton function i
 def getcantonfun(i):
     if i == 1:
@@ -429,6 +429,7 @@ def getcantonfun(i):
     else:
         return c26
 
+
 # time stepping
 n = 0
 while t < T:
@@ -462,8 +463,21 @@ while t < T:
     array_S_high = [0.0]
     array_E_high = [0.0]
     array_I_high = [0.0]
+
+    array_factor_S_n = [0.0]
+    array_factor_E_n = [0.0]
+    array_factor_I_n = [0.0]
+    array_factor_S_low = [0.0]
+    array_factor_E_low = [0.0]
+    array_factor_I_low = [0.0]
+    array_factor_S_half = [0.0]
+    array_factor_E_half = [0.0]
+    array_factor_I_half = [0.0]
+    array_factor_S_high = [0.0]
+    array_factor_E_high = [0.0]
+    array_factor_I_high = [0.0]
+
     n = 1
-    print("starting to calculate integrals")
     while n < 27:
         array_S_n.append(assemble(S_n * getcantonfun(n) * dx))
         array_E_n.append(assemble(E_n * getcantonfun(n) * dx))
@@ -478,7 +492,6 @@ while t < T:
         array_E_high.append(assemble(E_high * getcantonfun(n) * dx))
         array_I_high.append(assemble(I_high * getcantonfun(n) * dx))
         n += 1
-    print("finished calculating integrals")
 
     # calculate source terms for current time, low dt, half dt and high dt
     print("initializing sources now ...")
@@ -515,21 +528,157 @@ while t < T:
             factor_e_high += array_alpha[index] * array_E_high[ID_KT_j] - array_beta[index] * array_E_high[ID_KT_i]
             factor_i_high += array_alpha[index] * array_I_high[ID_KT_j] - array_beta[index] * array_I_high[ID_KT_i]
             ID_KT_j += 1
+        array_factor_S_n.append(factor_s_n)
+        array_factor_E_n.append(factor_e_n)
+        array_factor_I_n.append(factor_i_n)
+        array_factor_S_low.append(factor_s_low)
+        array_factor_E_low.append(factor_e_low)
+        array_factor_I_low.append(factor_i_low)
+        array_factor_S_half.append(factor_s_half)
+        array_factor_E_half.append(factor_e_half)
+        array_factor_I_half.append(factor_i_half)
+        array_factor_S_high.append(factor_s_high)
+        array_factor_E_high.append(factor_e_high)
+        array_factor_I_high.append(factor_i_high)
 
-        source_s_n = project(source_s_n + factor_s_n * getcantonfun(ID_KT_i))
-        source_e_n = project(source_e_n + factor_e_n * getcantonfun(ID_KT_i))
-        source_i_n = project(source_i_n + factor_i_n * getcantonfun(ID_KT_i))
-        source_s_low = project(source_s_low + factor_s_low * getcantonfun(ID_KT_i))
-        source_e_low = project(source_e_low + factor_e_low * getcantonfun(ID_KT_i))
-        source_i_low = project(source_i_low + factor_i_low * getcantonfun(ID_KT_i))
-        source_s_half = project(source_s_half + factor_s_half * getcantonfun(ID_KT_i))
-        source_e_half = project(source_e_half + factor_e_half * getcantonfun(ID_KT_i))
-        source_i_half = project(source_i_half + factor_i_half * getcantonfun(ID_KT_i))
-        source_s_high = project(source_s_high + factor_s_high * getcantonfun(ID_KT_i))
-        source_e_high = project(source_e_high + factor_e_high * getcantonfun(ID_KT_i))
-        source_i_high = project(source_i_high + factor_i_high * getcantonfun(ID_KT_i))
-        print("source of canton ", ID_KT_i, " finished")
         ID_KT_i += 1
+
+    coeff_s = array_factor_S_n
+    coeff_e = array_factor_E_n
+    coeff_i = array_factor_I_n
+    source_s_n = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
+                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
+                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
+                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
+                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
+                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
+                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
+                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
+
+    source_e_n = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
+                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
+                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
+                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
+                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
+                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
+                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
+                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
+
+    source_i_n = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
+                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
+                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
+                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
+                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
+                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
+                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
+                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
+
+    print("source_n done ...")
+    coeff_s = array_factor_S_low
+    coeff_e = array_factor_E_low
+    coeff_i = array_factor_I_low
+    source_s_low = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
+                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
+                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
+                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
+                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
+                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
+                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
+                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
+
+    source_e_low = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
+                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
+                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
+                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
+                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
+                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
+                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
+                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
+
+    source_i_low = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
+                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
+                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
+                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
+                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
+                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
+                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
+                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
+
+    print("source_low done ...")
+    coeff_s = array_factor_S_half
+    coeff_e = array_factor_E_half
+    coeff_i = array_factor_I_half
+    source_s_half = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
+                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
+                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
+                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
+                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
+                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
+                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
+                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
+
+    source_e_half = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
+                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
+                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
+                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
+                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
+                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
+                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
+                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
+
+    source_i_half = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
+                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
+                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
+                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
+                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
+                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
+                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
+                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
+
+    print("source_half done ...")
+    coeff_s = array_factor_S_high
+    coeff_e = array_factor_E_high
+    coeff_i = array_factor_I_high
+    source_s_high = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
+                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
+                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
+                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
+                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
+                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
+                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
+                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
+
+    source_e_high = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
+                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
+                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
+                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
+                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
+                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
+                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
+                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
+
+    source_i_high = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
+                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
+                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
+                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
+                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
+                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
+                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
+                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
+
+    print("source_high done ...")
 
     # plot one source term to check if everything works
     plot(source_e_low)
@@ -539,7 +688,7 @@ while t < T:
     # Define variational problem for SEI_low
     F = S_low * v_1 * dx - S_n * v_1 * dx - theta * dt * (-beta * S_low * I_low * v_1 * dx + \
         theta_factor * (- rhoinv_s * d_s * dot(grad(S_low), grad(v_1)) * dx + rhoinv_s * source_s_low * v_1 * dx)) - \
-        (1.0 - theta) * dt *(-beta * S_n * I_n * v_1 * dx + theta_factor * ( - rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
+        (1.0 - theta) * dt * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
         E_low * v_2 * dx - E_n * v_2 * dx - theta * dt * (beta * S_low * I_low * v_2 * dx - oneoverz * E_low * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_low), grad(v_2)) * dx + rhoinv_e * source_e_low * v_2 * dx)) - \
         (1.0 - theta) * dt * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
@@ -557,7 +706,7 @@ while t < T:
     # Define variational problem for SEI_half
     F = S_half * v_1 * dx - S_n * v_1 * dx - theta * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + \
         theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) - \
-        (1.0 - theta) * dt / 2.0 * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n),grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
+        (1.0 - theta) * dt / 2.0 * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
         E_half * v_2 * dx - E_n * v_2 * dx - theta * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
@@ -576,8 +725,7 @@ while t < T:
     F = S_high * v_1 * dx - S_half * v_1 * dx - theta * dt / 2.0 * (-beta * S_high * I_high * v_1 * dx + \
         theta_factor * (- rhoinv_s * d_s * dot(grad(S_high), grad(v_1)) * dx + rhoinv_s * source_s_high * v_1 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) + \
-        E_high * v_2 * dx - E_half * v_2 * dx - theta * dt / 2.0 * (
-        beta * S_high * I_high * v_2 * dx - oneoverz * E_high * v_2 * dx + \
+        E_high * v_2 * dx - E_half * v_2 * dx - theta * dt / 2.0 * (beta * S_high * I_high * v_2 * dx - oneoverz * E_high * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_high), grad(v_2)) * dx + rhoinv_e * source_e_high * v_2 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) + \
@@ -608,7 +756,7 @@ while t < T:
         newtime = t + dt
         oldtime = t
         # interpolate between timesteps to get plots
-        while (math.floor(newtime) - math.floor(t))>0:
+        while (math.floor(newtime) - math.floor(t)) > 0:
             SEI_plot = project((SEI_high - SEI_n) * (math.floor(t) + 1.0 - oldtime) / dt + SEI_n, V)
             _S, _E, _I = SEI_plot.split()
             plt.xlabel('space [x]')
