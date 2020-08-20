@@ -31,7 +31,7 @@ theta = Constant(0.5)  # theta = 0.5 means Crank-Nicolson
 t = 0.0  # global time
 timestep = [0.0]  # array to safe the timesteps
 rho = 0.1  # safety factor
-tol = 100.0  # tolerance of the l2 norm
+tol = 350.0  # tolerance of the l2 norm
 toldt = 0.01  # smallest allowed timestep
 
 # get mesh from file in folder mesh
@@ -63,15 +63,6 @@ d = Function(V)
 source_s_n = Function(W)
 source_e_n = Function(W)
 source_i_n = Function(W)
-source_s_low = Function(W)
-source_e_low = Function(W)
-source_i_low = Function(W)
-source_s_half = Function(W)
-source_e_half = Function(W)
-source_i_half = Function(W)
-source_s_high = Function(W)
-source_e_high = Function(W)
-source_i_high = Function(W)
 
 # create files and parameters for visualization output and time
 name = 100000
@@ -83,10 +74,7 @@ boundi = np.linspace(0.01, 0.39, 40)
 
 # setting Initial Conditions
 SEI_0 = Expression(('1.0',
-                    '0.5*exp(-0.0000001*(pow(x[0]-684000.0,2)+pow(x[1]-247000.0,2))) + '
-                    '0.5*exp(-0.0000001*(pow(x[0]-600000.0,2)+pow(x[1]-165000.0,2))) + '
-                    '0.4*exp(-0.0000001*(pow(x[0]-620000.0,2)+pow(x[1]-215000.0,2))) + '
-                    '0.3*exp(-0.0000001*(pow(x[0]-710000.0,2)+pow(x[1]-220000.0,2)))',
+                    '0.2*exp(-0.00000001*(pow(x[0]-650000.0,2)+pow(x[1]-230000.0,2)))',
                     '0.0'),
                    degree=2)
 SEI_n = project(SEI_0, V)
@@ -436,62 +424,26 @@ while t < T:
     # Define source term for long connections
     source_s_0 = Expression('0.0', degree=2)
     source_s_n = project(source_s_0, W)
-    source_s_low = project(source_s_0, W)
-    source_s_half = project(source_s_0, W)
-    source_s_high = project(source_s_0, W)
     source_e_0 = Expression('0.0', degree=2)
     source_e_n = project(source_e_0, W)
-    source_e_low = project(source_e_0, W)
-    source_e_half = project(source_e_0, W)
-    source_e_high = project(source_e_0, W)
     source_i_0 = Expression('0.0', degree=2)
     source_i_n = project(source_i_0, W)
-    source_i_low = project(source_i_0, W)
-    source_i_half = project(source_i_0, W)
-    source_i_high = project(source_i_0, W)
 
     # compute number of susceptible, exposed and infected in every canton in advance and save as array
     array_S_n = [0.0]
     array_E_n = [0.0]
     array_I_n = [0.0]
-    array_S_low = [0.0]
-    array_E_low = [0.0]
-    array_I_low = [0.0]
-    array_S_half = [0.0]
-    array_E_half = [0.0]
-    array_I_half = [0.0]
-    array_S_high = [0.0]
-    array_E_high = [0.0]
-    array_I_high = [0.0]
 
     array_factor_S_n = [0.0]
     array_factor_E_n = [0.0]
     array_factor_I_n = [0.0]
-    array_factor_S_low = [0.0]
-    array_factor_E_low = [0.0]
-    array_factor_I_low = [0.0]
-    array_factor_S_half = [0.0]
-    array_factor_E_half = [0.0]
-    array_factor_I_half = [0.0]
-    array_factor_S_high = [0.0]
-    array_factor_E_high = [0.0]
-    array_factor_I_high = [0.0]
 
-    n = 1
-    while n < 27:
-        array_S_n.append(assemble(S_n * getcantonfun(n) * dx))
-        array_E_n.append(assemble(E_n * getcantonfun(n) * dx))
-        array_I_n.append(assemble(I_n * getcantonfun(n) * dx))
-        array_S_low.append(assemble(S_low * getcantonfun(n) * dx))
-        array_E_low.append(assemble(E_low * getcantonfun(n) * dx))
-        array_I_low.append(assemble(I_low * getcantonfun(n) * dx))
-        array_S_half.append(assemble(S_half * getcantonfun(n) * dx))
-        array_E_half.append(assemble(E_half * getcantonfun(n) * dx))
-        array_I_half.append(assemble(I_half * getcantonfun(n) * dx))
-        array_S_high.append(assemble(S_high * getcantonfun(n) * dx))
-        array_E_high.append(assemble(E_high * getcantonfun(n) * dx))
-        array_I_high.append(assemble(I_high * getcantonfun(n) * dx))
-        n += 1
+    k = 1
+    while k < 27:
+        array_S_n.append(assemble(S_n * getcantonfun(k) * dx))
+        array_E_n.append(assemble(E_n * getcantonfun(k) * dx))
+        array_I_n.append(assemble(I_n * getcantonfun(k) * dx))
+        k += 1
 
     # calculate source terms for current time, low dt, half dt and high dt
     print("initializing sources now ...")
@@ -501,45 +453,16 @@ while t < T:
         factor_s_n = 0.0
         factor_e_n = 0.0
         factor_i_n = 0.0
-        factor_s_low = 0.0
-        factor_e_low = 0.0
-        factor_i_low = 0.0
-        factor_s_half = 0.0
-        factor_e_half = 0.0
-        factor_i_half = 0.0
-        factor_s_high = 0.0
-        factor_e_high = 0.0
-        factor_i_high = 0.0
         while ID_KT_j < 27:
             index = (ID_KT_i - 1) * 26 + ID_KT_j - 1
             factor_s_n += array_alpha[index] * array_S_n[ID_KT_j] - array_beta[index] * array_S_n[ID_KT_i]
             factor_e_n += array_alpha[index] * array_E_n[ID_KT_j] - array_beta[index] * array_E_n[ID_KT_i]
             factor_i_n += array_alpha[index] * array_I_n[ID_KT_j] - array_beta[index] * array_I_n[ID_KT_i]
 
-            factor_s_low += array_alpha[index] * array_S_low[ID_KT_j] - array_beta[index] * array_S_low[ID_KT_i]
-            factor_e_low += array_alpha[index] * array_E_low[ID_KT_j] - array_beta[index] * array_E_low[ID_KT_i]
-            factor_i_low += array_alpha[index] * array_I_low[ID_KT_j] - array_beta[index] * array_I_low[ID_KT_i]
-
-            factor_s_half += array_alpha[index] * array_S_half[ID_KT_j] - array_beta[index] * array_S_half[ID_KT_i]
-            factor_e_half += array_alpha[index] * array_E_half[ID_KT_j] - array_beta[index] * array_E_half[ID_KT_i]
-            factor_i_half += array_alpha[index] * array_I_half[ID_KT_j] - array_beta[index] * array_I_half[ID_KT_i]
-
-            factor_s_high += array_alpha[index] * array_S_high[ID_KT_j] - array_beta[index] * array_S_high[ID_KT_i]
-            factor_e_high += array_alpha[index] * array_E_high[ID_KT_j] - array_beta[index] * array_E_high[ID_KT_i]
-            factor_i_high += array_alpha[index] * array_I_high[ID_KT_j] - array_beta[index] * array_I_high[ID_KT_i]
             ID_KT_j += 1
         array_factor_S_n.append(factor_s_n)
         array_factor_E_n.append(factor_e_n)
         array_factor_I_n.append(factor_i_n)
-        array_factor_S_low.append(factor_s_low)
-        array_factor_E_low.append(factor_e_low)
-        array_factor_I_low.append(factor_i_low)
-        array_factor_S_half.append(factor_s_half)
-        array_factor_E_half.append(factor_e_half)
-        array_factor_I_half.append(factor_i_half)
-        array_factor_S_high.append(factor_s_high)
-        array_factor_E_high.append(factor_e_high)
-        array_factor_I_high.append(factor_i_high)
 
         ID_KT_i += 1
 
@@ -577,124 +500,23 @@ while t < T:
                          coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
 
     print("source_n done ...")
-    coeff_s = array_factor_S_low
-    coeff_e = array_factor_E_low
-    coeff_i = array_factor_I_low
-    source_s_low = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
-                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
-                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
-                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
-                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
-                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
-                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
-                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
-                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
-
-    source_e_low = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
-                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
-                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
-                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
-                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
-                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
-                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
-                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
-                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
-
-    source_i_low = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
-                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
-                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
-                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
-                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
-                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
-                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
-                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
-                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
-
-    print("source_low done ...")
-    coeff_s = array_factor_S_half
-    coeff_e = array_factor_E_half
-    coeff_i = array_factor_I_half
-    source_s_half = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
-                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
-                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
-                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
-                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
-                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
-                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
-                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
-                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
-
-    source_e_half = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
-                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
-                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
-                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
-                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
-                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
-                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
-                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
-                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
-
-    source_i_half = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
-                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
-                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
-                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
-                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
-                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
-                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
-                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
-                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
-
-    print("source_half done ...")
-    coeff_s = array_factor_S_high
-    coeff_e = array_factor_E_high
-    coeff_i = array_factor_I_high
-    source_s_high = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
-                         coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
-                         coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
-                         coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
-                         coeff_s[12] * c12 + coeff_s[13] * c13 + coeff_s[14] * c14 + \
-                         coeff_s[15] * c15 + coeff_s[16] * c16 + coeff_s[17] * c17 + \
-                         coeff_s[18] * c18 + coeff_s[19] * c19 + coeff_s[20] * c20 + \
-                         coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
-                         coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
-
-    source_e_high = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
-                         coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
-                         coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
-                         coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
-                         coeff_e[12] * c12 + coeff_e[13] * c13 + coeff_e[14] * c14 + \
-                         coeff_e[15] * c15 + coeff_e[16] * c16 + coeff_e[17] * c17 + \
-                         coeff_e[18] * c18 + coeff_e[19] * c19 + coeff_e[20] * c20 + \
-                         coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
-                         coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
-
-    source_i_high = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
-                         coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
-                         coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
-                         coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
-                         coeff_i[12] * c12 + coeff_i[13] * c13 + coeff_i[14] * c14 + \
-                         coeff_i[15] * c15 + coeff_i[16] * c16 + coeff_i[17] * c17 + \
-                         coeff_i[18] * c18 + coeff_i[19] * c19 + coeff_i[20] * c20 + \
-                         coeff_i[21] * c21 + coeff_i[22] * c22 + coeff_i[23] * c23 + \
-                         coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
-
-    print("source_high done ...")
 
     # plot one source term to check if everything works
-    plot(source_e_low)
+    c = plot(source_e_n)
+    plt.colorbar(c)
     plt.savefig('sourceplot.jpg')
     plt.cla
 
     # Define variational problem for SEI_low
     F = S_low * v_1 * dx - S_n * v_1 * dx - theta * dt * (-beta * S_low * I_low * v_1 * dx + \
-        theta_factor * (- rhoinv_s * d_s * dot(grad(S_low), grad(v_1)) * dx + rhoinv_s * source_s_low * v_1 * dx)) - \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_low), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) - \
         (1.0 - theta) * dt * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
         E_low * v_2 * dx - E_n * v_2 * dx - theta * dt * (beta * S_low * I_low * v_2 * dx - oneoverz * E_low * v_2 * dx + \
-        theta_factor * (- rhoinv_e * d_e * dot(grad(E_low), grad(v_2)) * dx + rhoinv_e * source_e_low * v_2 * dx)) - \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_low), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) - \
         (1.0 - theta) * dt * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_n), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) + \
         I_low * v_3 * dx - I_n * v_3 * dx - theta * dt * (oneoverz * E_low * v_3 * dx - oneoverd * I_low * v_3 * dx + \
-        theta_factor * (- rhoinv_i * d_i * dot(grad(I_low), grad(v_3)) * dx + rhoinv_i * source_i_low * v_3 * dx)) - \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_low), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx)) - \
         (1.0 - theta) * dt * (oneoverz * E_n * v_3 * dx - oneoverd * I_n * v_3 * dx + \
         theta_factor * (- rhoinv_i * d_i * dot(grad(I_n), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx))
 
@@ -705,14 +527,14 @@ while t < T:
 
     # Define variational problem for SEI_half
     F = S_half * v_1 * dx - S_n * v_1 * dx - theta * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + \
-        theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) - \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (-beta * S_n * I_n * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_n), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
         E_half * v_2 * dx - E_n * v_2 * dx - theta * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
-        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) - \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (beta * S_n * I_n * v_2 * dx - oneoverz * E_n * v_2 * dx + \
         theta_factor * (- rhoinv_e * d_e * dot(grad(E_n), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) + \
         I_half * v_3 * dx - I_n * v_3 * dx - theta * dt / 2.0 * (oneoverz * E_half * v_3 * dx - oneoverd * I_half * v_3 * dx + \
-        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_half * v_3 * dx)) - \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (oneoverz * E_n * v_3 * dx - oneoverd * I_n * v_3 * dx + \
         theta_factor * (- rhoinv_i * d_i * dot(grad(I_n), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx))
 
@@ -723,16 +545,16 @@ while t < T:
 
     # Define variational problem for SEI_high
     F = S_high * v_1 * dx - S_half * v_1 * dx - theta * dt / 2.0 * (-beta * S_high * I_high * v_1 * dx + \
-        theta_factor * (- rhoinv_s * d_s * dot(grad(S_high), grad(v_1)) * dx + rhoinv_s * source_s_high * v_1 * dx)) - \
-        (1.0 - theta) * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_half * v_1 * dx)) + \
+        theta_factor * (- rhoinv_s * d_s * dot(grad(S_high), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) - \
+        (1.0 - theta) * dt / 2.0 * (-beta * S_half * I_half * v_1 * dx + theta_factor * (- rhoinv_s * d_s * dot(grad(S_half), grad(v_1)) * dx + rhoinv_s * source_s_n * v_1 * dx)) + \
         E_high * v_2 * dx - E_half * v_2 * dx - theta * dt / 2.0 * (beta * S_high * I_high * v_2 * dx - oneoverz * E_high * v_2 * dx + \
-        theta_factor * (- rhoinv_e * d_e * dot(grad(E_high), grad(v_2)) * dx + rhoinv_e * source_e_high * v_2 * dx)) - \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_high), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (beta * S_half * I_half * v_2 * dx - oneoverz * E_half * v_2 * dx + \
-        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_half * v_2 * dx)) + \
+        theta_factor * (- rhoinv_e * d_e * dot(grad(E_half), grad(v_2)) * dx + rhoinv_e * source_e_n * v_2 * dx)) + \
         I_high * v_3 * dx - I_half * v_3 * dx - theta * dt / 2.0 * (oneoverz * E_high * v_3 * dx - oneoverd * I_high * v_3 * dx + \
-        theta_factor * (- rhoinv_i * d_i * dot(grad(I_high), grad(v_3)) * dx + rhoinv_i * source_i_high * v_3 * dx)) - \
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_high), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx)) - \
         (1.0 - theta) * dt / 2.0 * (oneoverz * E_half * v_3 * dx - oneoverd * I_half * v_3 * dx + \
-        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_half * v_3 * dx))
+        theta_factor * (- rhoinv_i * d_i * dot(grad(I_half), grad(v_3)) * dx + rhoinv_i * source_i_n * v_3 * dx))
 
     Jac = derivative(F, SEI_high, TrialFunction(V))
 
