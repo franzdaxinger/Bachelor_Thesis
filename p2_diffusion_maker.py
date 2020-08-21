@@ -69,8 +69,6 @@ class MyExpression0(UserExpression):
             diff = 2000.0
         if dens > 400000.0:
             dens = 400000.0
-        if dens < 10000.0:
-            dens = 10000.0
         if a > -1:
             value[0] = dens
             value[1] = diff + 500.0      # add 500 to represent non-work-related movement to avoid diffusion zero in areas with no commuters to neighboring municipalities
