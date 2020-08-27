@@ -1,5 +1,4 @@
-
-# creates a video from the pictures in the Images_E folder
+# creates a video from the pictures in the Images_I folder
 
 import cv2
 import numpy as np

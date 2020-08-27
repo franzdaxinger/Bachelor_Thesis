@@ -22,7 +22,7 @@ plotbool = True
 savebool = True
 
 # get data
-beta = 1.2
+beta = 0.8
 coefficients = np.genfromtxt('shapefiles/diff.txt')
 densityinv = np.genfromtxt('shapefiles/rho.txt')
 switzerland = gpd.read_file('shapefiles/municipalities.shp')

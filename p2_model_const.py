@@ -21,10 +21,10 @@ import math
 
 # define all needed parameters
 T = 60.0                                # final time in days
-dt = 1.0 / 24.0                         # time step size at beginning
+dt = 2.0 / 24.0                         # time step size at beginning
 theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-oneoverd = Constant(1.0 / 4.0)          # one over average duration of infection
-oneoverz = Constant(1.0 / 3.0)          # one over average latency period
+oneoverd = Constant(1.0 / 3.0)          # one over average duration of infection
+oneoverz = Constant(1.0 / 2.0)          # one over average latency period
 
 theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
 t = 0.0                                 # global time
@@ -62,7 +62,7 @@ name = 100000
 
 # setting Initial Conditions
 SEI_0 = Expression(('1.0',
-                    '0.2*exp(-0.00000001*(pow(x[0]-650000.0,2)+pow(x[1]-230000.0,2)))',
+                    '0.01 + 0.4*exp(-0.00000001*(pow(x[0]-650000.0,2)+pow(x[1]-230000.0,2)))',
                     '0.0'),
                    degree=2)
 SEI_n = project(SEI_0, V)
@@ -398,7 +398,7 @@ while t < T:
     print("And the time is: ", t)
 
     # if error small enough or minimum timestep reached, update and go to the next timestep
-    if n%24 == 0:
+    if n%12 == 0:
         _S, _E, _I = SEI_low.split()
         f_out = XDMFFile("Videomaker/functions/function_S.xdmf")
         f_out.write_checkpoint(project(_S, W), "S", name, XDMFFile.Encoding.HDF5, True)

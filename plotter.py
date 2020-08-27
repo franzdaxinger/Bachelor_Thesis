@@ -33,7 +33,7 @@ W = FunctionSpace(mesh, P1)
 triang = tri.Triangulation(*mesh.coordinates().reshape((-1, 2)).T,
                            triangles=mesh.cells())
 bounds = np.linspace(0.0275,1.0725,40)
-bounde = np.linspace(0.01,0.39,40)
+bounde = np.linspace(0.005,0.195,40)
 boundi = np.linspace(0.01,0.39,40)
 mybound1 = np.linspace(50.0, 1950.0, 40)
 mybound2 = np.linspace(10000.0, 390000.0, 40)
@@ -45,7 +45,7 @@ f_in1 = XDMFFile("Videomaker/functions/function_S.xdmf")
 f_in2 = XDMFFile("Videomaker/functions/function_E.xdmf")
 f_in3 = XDMFFile("Videomaker/functions/function_I.xdmf")
 
-for i in range(21):
+for i in range(61):
     f_in1.read_checkpoint(f1, "S", i)
     f1.set_allow_extrapolation(True)
     f_in2.read_checkpoint(f2, "E", i)
@@ -63,7 +63,7 @@ for i in range(21):
     c = plot(interpolate(f1, W), mode='color', vmin=0.0, vmax=1.1)
     plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels=bounds, extend='both')
     plt.colorbar(c)
-    plt.savefig('Videomaker/Images_S/' + str(i) + '.jpg')
+    plt.savefig('Videomaker/Images_S/' + str(i + 1000) + '.jpg')
     plt.clf()
 
     plt.xlabel('space [x]')
@@ -73,10 +73,10 @@ for i in range(21):
     plt.title('Percentage of initial population that is exposed')
     plt.plot(x_border, y_border, color='r')
     Z = f2.compute_vertex_values(mesh)
-    c = plot(interpolate(f2, W), mode='color', vmin=0, vmax=0.4)
-    plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=bounde, extend='both')
+    c = plot(interpolate(f2, W), mode='color', vmin=0, vmax=0.2)
+    plt.tricontourf(triang, Z, vmin=0.0, vmax=0.2, levels=bounde, extend='both')
     plt.colorbar(c)
-    plt.savefig('Videomaker/Images_E/' + str(i) + '.jpg')
+    plt.savefig('Videomaker/Images_E/' + str(i + 1000) + '.jpg')
     plt.clf()
 
     plt.xlabel('space [x]')
@@ -89,7 +89,7 @@ for i in range(21):
     c = plot(interpolate(f3, W), mode='color', vmin=0, vmax=0.4)
     plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=boundi, extend='both')
     plt.colorbar(c)
-    plt.savefig('Videomaker/Images_I/' + str(i) + '.jpg')
+    plt.savefig('Videomaker/Images_I/' + str(i + 1000) + '.jpg')
     plt.clf()
 
 f4 = Function(W)
