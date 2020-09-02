@@ -21,18 +21,19 @@ import math
 import dijitso
 
 # define all needed parameters
-T = 60.0  # final time in days
-dt = 1.0 / 24.0  # time step size at beginning
-theta_factor = Constant(1.1)  # factor to represent the underreporting of movement
-oneoverd = Constant(1.0 / 4.0)  # one over average duration of infection
-oneoverz = Constant(1.0 / 3.0)  # one over average latency period
+T = 60.0                                # final time in days
+dt = 4.0 / 24.0                         # time step size at beginning
+theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
+beta_factor = 1.1
+oneoverd = Constant(1.0 / 5.0)          # one over average duration of infection
+oneoverz = Constant(1.0 / 5.0)          # one over average latency period
 
-theta = Constant(0.5)  # theta = 0.5 means Crank-Nicolson
-t = 0.0  # global time
-timestep = [0.0]  # array to safe the timesteps
-rho = 0.1  # safety factor
-tol = 350.0  # tolerance of the l2 norm
-toldt = 0.01  # smallest allowed timestep
+theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
+t = 0.0                                 # global time
+timestep = [0.0]                        # array to safe the timesteps
+rho = 0.01                              # safety factor
+tol = 10.0                              # tolerance of the l2 norm
+toldt = 0.01                            # smallest allowed timestep
 
 # get mesh from file in folder mesh
 mesh = Mesh('mesh/mesh2d.xml.gz')
@@ -40,10 +41,6 @@ mesh = Mesh('mesh/mesh2d.xml.gz')
 # get data on commuters between cantons and write to array
 array_alpha = np.genfromtxt('shapefiles/alpha.txt')
 array_beta = np.genfromtxt('shapefiles/beta.txt')
-
-# read border points from txt file
-x_border = np.genfromtxt('shapefiles/switzerland_x.txt')
-y_border = np.genfromtxt('shapefiles/switzerland_y.txt')
 
 # define function space for system
 P1 = FiniteElement('P', triangle, 1)
@@ -66,15 +63,11 @@ source_i_n = Function(W)
 
 # create files and parameters for visualization output and time
 name = 100000
-triang = tri.Triangulation(*mesh.coordinates().reshape((-1, 2)).T,
-                           triangles=mesh.cells())
-bounds = np.linspace(0.0275, 1.0725, 40)
-bounde = np.linspace(0.01, 0.39, 40)
-boundi = np.linspace(0.01, 0.39, 40)
 
 # setting Initial Conditions
+# 0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))
 SEI_0 = Expression(('1.0',
-                    '0.2*exp(-0.00000001*(pow(x[0]-650000.0,2)+pow(x[1]-230000.0,2)))',
+                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))',
                     '0.0'),
                    degree=2)
 SEI_n = project(SEI_0, V)
@@ -104,93 +97,36 @@ f3 = Function(W)
 f_in = XDMFFile("difffun/beta.xdmf")
 f_in.read_checkpoint(f3, "g", 0)
 f3.set_allow_extrapolation(True)
-beta = project(f3, W)
+beta = project(beta_factor * f3, W)
 
 # check diffusion, 1/rho and beta and plot S, E, I for t=0 and safe as images
 _S_0, _E_0, _I_0 = SEI_n.split()
 _d_s, _d_i, _d_r = d.split()
 _rhoinv1, _rhoinv2, _rhoinv3 = rhoinv.split()
 
-mybound1 = np.linspace(50.0, 1950.0, 40)
-mybound2 = np.linspace(10000.0, 390000.0, 40)
+f_out = XDMFFile("Videomaker/functions/checkdiff.xdmf")
+f_out.write_checkpoint(project(_d_s, W), "diff", 0, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('Diffusion of neighboring municipalities')
-plt.plot(x_border, y_border, color='r')
-Z = _d_s.compute_vertex_values(mesh)
-c = plot(interpolate(_d_s, W), vmin=0.0, vmax=2000.0, mode='color')
-plt.tricontourf(triang, Z, vmin=0.0, vmax=2000.0, levels=mybound1, extend='both')
-plt.colorbar(c)
-plt.savefig('checkdiff1.jpg')
-plt.clf()
+f_out = XDMFFile("Videomaker/functions/checkrho.xdmf")
+f_out.write_checkpoint(project(_rhoinv1, W), "rho", 0, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('1 / population density')
-plt.plot(x_border, y_border, color='r')
-Z = _rhoinv1.compute_vertex_values(mesh)
-c = plot(interpolate(_rhoinv1, W), vmin=0.0, vmax=400000.0, mode='color')
-plt.tricontourf(triang, Z, vmin=0.0, vmax=400000.0, levels=mybound2, extend='both')
-plt.colorbar(c)
-plt.savefig('checkrho1.jpg')
-plt.clf()
+f_out = XDMFFile("Videomaker/functions/checkbeta.xdmf")
+f_out.write_checkpoint(project(beta, W), "beta", 0, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('beta')
-plt.plot(x_border, y_border, color='r')
-Z = beta.compute_vertex_values(mesh)
-c = plot(interpolate(beta, W))
-plt.tricontourf(triang, Z)
-plt.colorbar(c)
-plt.savefig('checkbeta1.jpg')
-plt.clf()
+f_out = XDMFFile("Videomaker/functions/function_S.xdmf")
+f_out.write_checkpoint(project(_S_0, W), "S", name, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('Percentage of initial population that is susceptible')
-plt.plot(x_border, y_border, color='r')
-Z = _S_0.compute_vertex_values(mesh)
-c = plot(interpolate(_S_0, W), mode='color', vmin=0.0, vmax=1.1)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels=bounds, extend='both')
-plt.colorbar(c)
-plt.savefig('Videomaker/Images_S/' + str(name) + '.jpg')
-plt.clf()
+f_out = XDMFFile("Videomaker/functions/function_E.xdmf")
+f_out.write_checkpoint(project(_E_0, W), "E", name, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('Percentage of initial population that is exposed')
-plt.plot(x_border, y_border, color='r')
-Z = _E_0.compute_vertex_values(mesh)
-c = plot(interpolate(_E_0, W), mode='color', vmin=0, vmax=0.4)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=bounde, extend='both')
-plt.colorbar(c)
-plt.savefig('Videomaker/Images_E/' + str(name) + '.jpg')
-plt.clf()
-
-plt.xlabel('space [x]')
-plt.ylabel('space [y]')
-plt.xticks([])
-plt.yticks([])
-plt.title('Percentage of initial population that is infected')
-plt.plot(x_border, y_border, color='r')
-Z = _I_0.compute_vertex_values(mesh)
-c = plot(interpolate(_I_0, W), mode='color', vmin=0, vmax=0.4)
-plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=boundi, extend='both')
-plt.colorbar(c)
-plt.savefig('Videomaker/Images_I/' + str(name) + '.jpg')
-plt.clf()
+f_out = XDMFFile("Videomaker/functions/function_I.xdmf")
+f_out.write_checkpoint(project(_I_0, W), "I", name, XDMFFile.Encoding.HDF5, True)
+f_out.close()
 
 name += 1
 
@@ -203,6 +139,7 @@ d_s, d_e, d_i = split(d)
 rhoinv_s, rhoinv_e, rhoinv_i = split(rhoinv)
 
 # get functions and areas to represent cantons
+cantonfun = [0.0]
 if 1 == 1:
     c1 = Function(W)
     f_in = XDMFFile("cantfun/01.xdmf")
@@ -333,90 +270,33 @@ if 1 == 1:
     f_in = XDMFFile("cantfun/26.xdmf")
     f_in.read_checkpoint(c26, "g", 0)
     c26.set_allow_extrapolation(True)
-    cant_area = [0.0]
-    cant_area.append(assemble(c1 * dx))
-    cant_area.append(assemble(c2 * dx))
-    cant_area.append(assemble(c3 * dx))
-    cant_area.append(assemble(c4 * dx))
-    cant_area.append(assemble(c5 * dx))
-    cant_area.append(assemble(c6 * dx))
-    cant_area.append(assemble(c7 * dx))
-    cant_area.append(assemble(c8 * dx))
-    cant_area.append(assemble(c9 * dx))
-    cant_area.append(assemble(c10 * dx))
-    cant_area.append(assemble(c11 * dx))
-    cant_area.append(assemble(c12 * dx))
-    cant_area.append(assemble(c13 * dx))
-    cant_area.append(assemble(c14 * dx))
-    cant_area.append(assemble(c15 * dx))
-    cant_area.append(assemble(c16 * dx))
-    cant_area.append(assemble(c17 * dx))
-    cant_area.append(assemble(c18 * dx))
-    cant_area.append(assemble(c19 * dx))
-    cant_area.append(assemble(c20 * dx))
-    cant_area.append(assemble(c21 * dx))
-    cant_area.append(assemble(c22 * dx))
-    cant_area.append(assemble(c23 * dx))
-    cant_area.append(assemble(c24 * dx))
-    cant_area.append(assemble(c25 * dx))
-    cant_area.append(assemble(c26 * dx))
 
-
-# function to have access to canton function i
-def getcantonfun(i):
-    if i == 1:
-        return c1
-    elif i == 2:
-        return c2
-    elif i == 3:
-        return c3
-    elif i == 4:
-        return c4
-    elif i == 5:
-        return c5
-    elif i == 6:
-        return c6
-    elif i == 7:
-        return c7
-    elif i == 8:
-        return c8
-    elif i == 9:
-        return c9
-    elif i == 10:
-        return c10
-    elif i == 11:
-        return c11
-    elif i == 12:
-        return c12
-    elif i == 13:
-        return c13
-    elif i == 14:
-        return c14
-    elif i == 15:
-        return c15
-    elif i == 16:
-        return c16
-    elif i == 17:
-        return c17
-    elif i == 18:
-        return c18
-    elif i == 19:
-        return c19
-    elif i == 20:
-        return c20
-    elif i == 21:
-        return c21
-    elif i == 22:
-        return c22
-    elif i == 23:
-        return c23
-    elif i == 24:
-        return c24
-    elif i == 25:
-        return c25
-    else:
-        return c26
-
+    cantonfun.append(c1)
+    cantonfun.append(c2)
+    cantonfun.append(c3)
+    cantonfun.append(c4)
+    cantonfun.append(c5)
+    cantonfun.append(c6)
+    cantonfun.append(c7)
+    cantonfun.append(c8)
+    cantonfun.append(c9)
+    cantonfun.append(c10)
+    cantonfun.append(c11)
+    cantonfun.append(c12)
+    cantonfun.append(c13)
+    cantonfun.append(c14)
+    cantonfun.append(c15)
+    cantonfun.append(c16)
+    cantonfun.append(c17)
+    cantonfun.append(c18)
+    cantonfun.append(c19)
+    cantonfun.append(c20)
+    cantonfun.append(c21)
+    cantonfun.append(c22)
+    cantonfun.append(c23)
+    cantonfun.append(c24)
+    cantonfun.append(c25)
+    cantonfun.append(c26)
 
 # time stepping
 n = 0
@@ -440,9 +320,9 @@ while t < T:
 
     k = 1
     while k < 27:
-        array_S_n.append(assemble(S_n * getcantonfun(k) * dx))
-        array_E_n.append(assemble(E_n * getcantonfun(k) * dx))
-        array_I_n.append(assemble(I_n * getcantonfun(k) * dx))
+        array_S_n.append(assemble(S_n * cantonfun[k] * dx))
+        array_E_n.append(assemble(E_n * cantonfun[k] * dx))
+        array_I_n.append(assemble(I_n * cantonfun[k] * dx))
         k += 1
 
     # calculate source terms for current time, low dt, half dt and high dt
@@ -500,12 +380,6 @@ while t < T:
                          coeff_i[24] * c24 + coeff_i[25] * c25 + coeff_i[26] * c26)
 
     print("source_n done ...")
-
-    # plot one source term to check if everything works
-    c = plot(source_e_n)
-    plt.colorbar(c)
-    plt.savefig('sourceplot.jpg')
-    plt.cla
 
     # Define variational problem for SEI_low
     F = S_low * v_1 * dx - S_n * v_1 * dx - theta * dt * (-beta * S_low * I_low * v_1 * dx + \
@@ -581,44 +455,18 @@ while t < T:
         while (math.floor(newtime) - math.floor(t)) > 0:
             SEI_plot = project((SEI_high - SEI_n) * (math.floor(t) + 1.0 - oldtime) / dt + SEI_n, V)
             _S, _E, _I = SEI_plot.split()
-            plt.xlabel('space [x]')
-            plt.ylabel('space [y]')
-            plt.xticks([])
-            plt.yticks([])
-            plt.title('Percentage of initial population that is susceptible')
-            plt.plot(x_border, y_border, color='r')
-            Z = _S.compute_vertex_values(mesh)
-            c = plot(interpolate(_S, W), mode='color', vmin=0.0, vmax=1.1)
-            plt.tricontourf(triang, Z, vmin=0.0, vmax=1.1, levels=bounds, extend='both')
-            plt.colorbar(c)
-            plt.savefig('Videomaker/Images_S/' + str(name) + '.jpg')
-            plt.clf()
 
-            plt.xlabel('space [x]')
-            plt.ylabel('space [y]')
-            plt.xticks([])
-            plt.yticks([])
-            plt.title('Percentage of initial population that is exposed')
-            plt.plot(x_border, y_border, color='r')
-            Z = _E.compute_vertex_values(mesh)
-            c = plot(interpolate(_E, W), mode='color', vmin=0.0, vmax=0.4)
-            plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=bounde, extend='both')
-            plt.colorbar(c)
-            plt.savefig('Videomaker/Images_E/' + str(name) + '.jpg')
-            plt.clf()
+            f_out = XDMFFile("Videomaker/functions/function_S.xdmf")
+            f_out.write_checkpoint(project(_S, W), "S", name, XDMFFile.Encoding.HDF5, True)
+            f_out.close()
 
-            plt.xlabel('space [x]')
-            plt.ylabel('space [y]')
-            plt.xticks([])
-            plt.yticks([])
-            plt.title('Percentage of initial population that is infected')
-            plt.plot(x_border, y_border, color='r')
-            Z = _I.compute_vertex_values(mesh)
-            c = plot(interpolate(_I, W), mode='color', vmin=0.0, vmax=0.4)
-            plt.tricontourf(triang, Z, vmin=0.0, vmax=0.4, levels=boundi, extend='both')
-            plt.colorbar(c)
-            plt.savefig('Videomaker/Images_I/' + str(name) + '.jpg')
-            plt.clf()
+            f_out = XDMFFile("Videomaker/functions/function_E.xdmf")
+            f_out.write_checkpoint(project(_E, W), "E", name, XDMFFile.Encoding.HDF5, True)
+            f_out.close()
+
+            f_out = XDMFFile("Videomaker/functions/function_I.xdmf")
+            f_out.write_checkpoint(project(_I, W), "I", name, XDMFFile.Encoding.HDF5, True)
+            f_out.close()
 
             name += 1
             t = math.floor(t) + 1.0

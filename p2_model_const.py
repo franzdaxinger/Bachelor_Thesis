@@ -21,10 +21,11 @@ import math
 
 # define all needed parameters
 T = 60.0                                # final time in days
-dt = 2.0 / 24.0                         # time step size at beginning
+dt = 4.0 / 24.0                         # time step size at beginning
 theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-oneoverd = Constant(1.0 / 3.0)          # one over average duration of infection
-oneoverz = Constant(1.0 / 2.0)          # one over average latency period
+beta_factor = 1.1
+oneoverd = Constant(1.0 / 5.0)          # one over average duration of infection
+oneoverz = Constant(1.0 / 5.0)          # one over average latency period
 
 theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
 t = 0.0                                 # global time
@@ -35,10 +36,6 @@ mesh = Mesh('mesh/mesh2d.xml.gz')
 # get data on commuters between cantons and write to array
 array_alpha = np.genfromtxt('shapefiles/alpha.txt')
 array_beta = np.genfromtxt('shapefiles/beta.txt')
-
-# read border points from txt file
-x_border = np.genfromtxt('shapefiles/switzerland_x.txt')
-y_border = np.genfromtxt('shapefiles/switzerland_y.txt')
 
 # define function space for system
 P1 = FiniteElement('P', triangle, 1)
@@ -61,8 +58,9 @@ source_i_n = Function(W)
 name = 100000
 
 # setting Initial Conditions
+# 0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))
 SEI_0 = Expression(('1.0',
-                    '0.01 + 0.4*exp(-0.00000001*(pow(x[0]-650000.0,2)+pow(x[1]-230000.0,2)))',
+                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))',
                     '0.0'),
                    degree=2)
 SEI_n = project(SEI_0, V)
@@ -92,7 +90,7 @@ f3 = Function(W)
 f_in = XDMFFile("difffun/beta.xdmf")
 f_in.read_checkpoint(f3, "g", 0)
 f3.set_allow_extrapolation(True)
-beta = project(f3, W)
+beta = project(beta_factor * f3, W)
 
 # check diffusion, 1/rho and beta and plot S, E, I for t=0 and safe as images
 _S_0, _E_0, _I_0 = SEI_n.split()
@@ -398,7 +396,7 @@ while t < T:
     print("And the time is: ", t)
 
     # if error small enough or minimum timestep reached, update and go to the next timestep
-    if n%12 == 0:
+    if n%6 == 0:
         _S, _E, _I = SEI_low.split()
         f_out = XDMFFile("Videomaker/functions/function_S.xdmf")
         f_out.write_checkpoint(project(_S, W), "S", name, XDMFFile.Encoding.HDF5, True)

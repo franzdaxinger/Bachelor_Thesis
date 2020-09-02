@@ -21,7 +21,7 @@ y_border = np.genfromtxt('shapefiles/switzerland_y.txt')
 
 # generate cartesian mesh with mshr
 print("Generating the mesh now... please wait")
-mesh2d = RectangleMesh(Point(480000.0, 70000.0), Point(840000.0, 300000.0), 40, 30, diagonal="right")
+mesh2d = RectangleMesh(Point(480000.0, 70000.0), Point(840000.0, 300000.0), 20, 15, diagonal="right")
 print("Mesh generation done")
 
 
@@ -31,10 +31,10 @@ plt.ylabel('space [y]')
 plt.title('mesh')
 plt.plot(x_border, y_border, color='r')
 plot(mesh2d)
-plt.savefig('mesh/geometry.jpg')
+plt.savefig('mesh2/mesh/geometry.jpg')
 plt.clf()
 
 # save the mesh as file
 print("Saving file ...")
-File('mesh/mesh2d.xml.gz') << mesh2d
+File('mesh2/mesh/mesh2d.xml.gz') << mesh2d
 print("Done")

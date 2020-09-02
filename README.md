@@ -6,8 +6,10 @@ p2_diffusion_writer.py and p2_diffusion_maker.py read in files from /shapefiles 
 
 p2_cantons_writer.py and p2_cantons_maker.py create functions to represent every single canton and the data to take commuters over long distances into account
 
-p2_adaptive_no_lc.py is a simulation of the pandemic without the long connections between cantons
+p2_model_adaptive.py simulates the pandemic with commuters over long distances using an adaptive time stepping
 
-p2_model_adaptive.py simulates the pandemic with commuters over long distances
+p2_model_const.py simulates the pandemic with commuters over long distances using a constant timestep
+
+plotter.py generates plots of the solutions
 
 Videomaker/videomaker.py creates a video from the created images

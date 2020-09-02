@@ -17,7 +17,7 @@ import numpy as np
 import math
 
 # turn plotting and saving off and on
-plotbool = True
+plotbool = False
 savebool = True
 
 # get data
@@ -26,7 +26,7 @@ switzerland_new = switzerland.translate(xoff=-2000000.0, yoff=-1000000.0, zoff=0
 print(switzerland_new.head())
 
 # get mesh from file in folder mesh
-mesh = Mesh('mesh/mesh2d.xml.gz')
+mesh = Mesh('mesh2/mesh/mesh2d.xml.gz')
 
 # define function space for system
 P1 = FiniteElement('P', triangle, 1)
@@ -300,106 +300,106 @@ g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15, g16, g17, g18,
 
 # save functions in folder cantfun
 if savebool == True:
-    f_out = XDMFFile("cantfun/01.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/01.xdmf")
     f_out.write_checkpoint(project(g1, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/02.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/02.xdmf")
     f_out.write_checkpoint(project(g2, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/03.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/03.xdmf")
     f_out.write_checkpoint(project(g3, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/04.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/04.xdmf")
     f_out.write_checkpoint(project(g4, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/05.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/05.xdmf")
     f_out.write_checkpoint(project(g5, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/06.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/06.xdmf")
     f_out.write_checkpoint(project(g6, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/07.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/07.xdmf")
     f_out.write_checkpoint(project(g7, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/08.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/08.xdmf")
     f_out.write_checkpoint(project(g8, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/09.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/09.xdmf")
     f_out.write_checkpoint(project(g9, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/10.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/10.xdmf")
     f_out.write_checkpoint(project(g10, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/11.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/11.xdmf")
     f_out.write_checkpoint(project(g11, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/12.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/12.xdmf")
     f_out.write_checkpoint(project(g12, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/13.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/13.xdmf")
     f_out.write_checkpoint(project(g13, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/14.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/14.xdmf")
     f_out.write_checkpoint(project(g14, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/15.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/15.xdmf")
     f_out.write_checkpoint(project(g15, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/16.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/16.xdmf")
     f_out.write_checkpoint(project(g16, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/17.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/17.xdmf")
     f_out.write_checkpoint(project(g17, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/18.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/18.xdmf")
     f_out.write_checkpoint(project(g18, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/19.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/19.xdmf")
     f_out.write_checkpoint(project(g19, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/20.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/20.xdmf")
     f_out.write_checkpoint(project(g20, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/21.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/21.xdmf")
     f_out.write_checkpoint(project(g21, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/22.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/22.xdmf")
     f_out.write_checkpoint(project(g22, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/23.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/23.xdmf")
     f_out.write_checkpoint(project(g23, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/24.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/24.xdmf")
     f_out.write_checkpoint(project(g24, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/25.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/25.xdmf")
     f_out.write_checkpoint(project(g25, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("cantfun/26.xdmf")
+    f_out = XDMFFile("mesh2/cantfun/26.xdmf")
     f_out.write_checkpoint(project(g26, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()

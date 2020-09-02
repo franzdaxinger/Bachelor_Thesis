@@ -22,7 +22,7 @@ plotbool = True
 savebool = True
 
 # get data
-beta = 0.8
+beta = 1.0
 coefficients = np.genfromtxt('shapefiles/diff.txt')
 densityinv = np.genfromtxt('shapefiles/rho.txt')
 switzerland = gpd.read_file('shapefiles/municipalities.shp')
@@ -88,7 +88,7 @@ if plotbool == True:
     plt.plot(x_border, y_border, color='r')
     c = plot(_g1)
     plt.colorbar(c)
-    plt.savefig('densinv.jpg')
+    plt.savefig('mesh/densinv.jpg')
     plt.clf()
 
     plt.xlabel('space [x]')
@@ -97,7 +97,7 @@ if plotbool == True:
     plt.plot(x_border, y_border, color='r')
     c = plot(_g2)
     plt.colorbar(c)
-    plt.savefig('diffusion.jpg')
+    plt.savefig('mesh/diffusion.jpg')
     plt.clf()
 
     plt.xlabel('space [x]')
@@ -106,20 +106,20 @@ if plotbool == True:
     plt.plot(x_border, y_border, color='r')
     c = plot(_g3)
     plt.colorbar(c)
-    plt.savefig('beta.jpg')
+    plt.savefig('mesh/beta.jpg')
     plt.clf()
 
 # save functions to folder difffun
 if savebool == True:
     g1, g2, g3 = g.split()
-    f_out = XDMFFile("difffun/rhoinv.xdmf")
+    f_out = XDMFFile("finemesh/difffun/rhoinv.xdmf")
     f_out.write_checkpoint(project(g1, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("difffun/diff.xdmf")
+    f_out = XDMFFile("finemesh/difffun/diff.xdmf")
     f_out.write_checkpoint(project(g2, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
 
-    f_out = XDMFFile("difffun/beta.xdmf")
+    f_out = XDMFFile("finemesh/difffun/beta.xdmf")
     f_out.write_checkpoint(project(g3, W), "g", 0, XDMFFile.Encoding.HDF5, True)  # appending to file
     f_out.close()
