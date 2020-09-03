@@ -23,7 +23,7 @@ import math
 T = 60.0                                # final time in days
 dt = 4.0 / 24.0                         # time step size at beginning
 theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-beta_factor = 1.1
+beta_factor = 0.1
 oneoverd = Constant(1.0 / 5.0)          # one over average duration of infection
 oneoverz = Constant(1.0 / 5.0)          # one over average latency period
 
@@ -60,8 +60,8 @@ name = 100000
 # setting Initial Conditions
 # 0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))
 SEI_0 = Expression(('1.0',
-                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))',
-                    '0.0'),
+                    '0.0',
+                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))'),
                    degree=2)
 SEI_n = project(SEI_0, V)
 
