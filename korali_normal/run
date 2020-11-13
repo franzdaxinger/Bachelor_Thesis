@@ -1,7 +1,0 @@
-#!/bin/sh
-
-set -eu
-
-rm -f model.out model.err out
-
-python -u run-tmcmc.py &> out
