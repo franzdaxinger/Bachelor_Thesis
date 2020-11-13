@@ -24,7 +24,7 @@ e['Solver']['Target Coefficient Of Variation'] = 0.9
 e["Distributions"][0]["Name"] = "Uniform 0"
 e["Distributions"][0]["Type"] = "Univariate/Uniform"
 e["Distributions"][0]["Minimum"] = 0.7
-e["Distributions"][0]["Maximum"] = +2.0
+e["Distributions"][0]["Maximum"] = +2.5
 
 e["Distributions"][1]["Name"] = "Uniform 1"
 e["Distributions"][1]["Type"] = "Univariate/Uniform"
