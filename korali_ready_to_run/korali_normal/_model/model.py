@@ -13,20 +13,21 @@ def model(s, X):
     sig = s["Parameters"][1]
     s["Reference Evaluations"] = []
     s["Standard Deviation"] = []
+    dev = []
     result = []
 
     # define all needed parameters
-    T = 9.0                            # final time in days
+    T = 9.0                                             # final time in days
     deltat = 12.0 / 24.0
-    dt = Constant(deltat)                       # time step size at beginning
-    theta_factor = Constant(1.1)                # factor to represent the underreporting of movement
-    beta_factor = Constant(beta_param)                    # infection rate
-    oneoverd = Constant(1.0 / 5.0)              # one over average duration of infection
-    oneoverz = Constant(1.0 / 5.0)              # one over average latency period
+    dt = Constant(deltat)                               # time step size at beginning
+    theta_factor = Constant(1.1)                        # factor to represent the underreporting of movement
+    beta_factor = Constant(beta_param)                  # infection rate
+    oneoverd = Constant(1.0 / 5.0)                      # one over average duration of infection
+    oneoverz = Constant(1.0 / 5.0)                      # one over average latency period
 
-    theta = Constant(0.5)                       # theta = 0.5 means Crank-Nicolson
-    t = 0.0                                     # global time
-    area_switzerland = 41285000000.0
+    theta = Constant(0.5)                               # theta = 0.5 means Crank-Nicolson
+    t = 0.0                                             # global time
+    area_switzerland = 41285000000.0                    # area of Switzerland in square meter
 
     # get mesh from file in folder mesh
     mesh = Mesh('mesh/mesh2d.xml.gz')
@@ -257,17 +258,14 @@ def model(s, X):
         cantonfun.append(c25)
         cantonfun.append(c26)
 
+    # Define source term for long connections
+    source_s_0 = Expression('0.0', degree=2)
+    source_e_0 = Expression('0.0', degree=2)
+    source_i_0 = Expression('0.0', degree=2)
+
     # time stepping
     n = 0
     while t < T:
-        # Define source term for long connections
-        source_s_0 = Expression('0.0', degree=2)
-        source_s_n = project(source_s_0, W)
-        source_e_0 = Expression('0.0', degree=2)
-        source_e_n = project(source_e_0, W)
-        source_i_0 = Expression('0.0', degree=2)
-        source_i_n = project(source_i_0, W)
-
         # compute number of susceptible, exposed and infected in every canton in advance and save as array
         array_S_n = [0.0]
         array_E_n = [0.0]
@@ -279,9 +277,9 @@ def model(s, X):
 
         k = 1
         while k < 27:
-            array_S_n.append(assemble(S_n * cantonfun[k] * dx))
-            array_E_n.append(assemble(E_n * cantonfun[k] * dx))
-            array_I_n.append(assemble(I_n * cantonfun[k] * dx))
+            array_S_n.append(Constant(assemble(S_n * cantonfun[k] * dx)))
+            array_E_n.append(Constant(assemble(E_n * cantonfun[k] * dx)))
+            array_I_n.append(Constant(assemble(I_n * cantonfun[k] * dx)))
             k += 1
 
         # calculate source terms for current time
@@ -308,7 +306,7 @@ def model(s, X):
         coeff_s = array_factor_S_n
         coeff_e = array_factor_E_n
         coeff_i = array_factor_I_n
-        source_s_n = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+        source_s_n = project(source_s_0 + coeff_s[1] * c1 + coeff_s[2] * c2 + \
                              coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
                              coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
                              coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
@@ -318,7 +316,7 @@ def model(s, X):
                              coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
                              coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
 
-        source_e_n = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+        source_e_n = project(source_e_0 + coeff_e[1] * c1 + coeff_e[2] * c2 + \
                              coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
                              coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
                              coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
@@ -328,7 +326,7 @@ def model(s, X):
                              coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
                              coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
 
-        source_i_n = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+        source_i_n = project(source_i_0 + coeff_i[1] * c1 + coeff_i[2] * c2 + \
                              coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
                              coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
                              coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
@@ -370,7 +368,6 @@ def model(s, X):
 
         SEI_n.assign(SEI_low)
 
-    dev = []
     for x in X:
         dev.append(sig)
     s["Reference Evaluations"] = result
