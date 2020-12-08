@@ -5,20 +5,16 @@ from fenics import *
 from dolfin import *
 import numpy as np
 
-sampleBetas = {}
-sampleSigmas = {}
-InfectedDaysCounts = {}
-InfectedPointOneCounts = {}
-
-def prepareOutputDir():
-  if os.path.isdir('_executor_output') == False:
-    os.mkdir('_executor_output')
+sampleBeta = {}
+sampleSigma = {}
+InfectedDays = {}
+InfectedDetailed = {}
 
 
-def model(s, fileName):
+def model(s):
     beta_param = s["Parameters"][0]
     sig = s["Parameters"][1]
-    sampleId = s["Sample Id"]                           # new
+    sampleId = s["Sample Id"]
     dev = []
     result = []
     result_detailed = []
@@ -383,20 +379,12 @@ def model(s, fileName):
     for x in result:
         dev.append(sig)
 
-    sampleBetas[sampleId] = beta_param
-    sampleSigmas[sampleId] = sig
-    InfectedDaysCounts[sampleId] = result
-    InfectedPointOneCounts[sampleId] = result_detailed
+    sampleBeta[sampleId] = beta_param
+    sampleSigma[sampleId] = sig
+    InfectedDays[sampleId] = result
+    InfectedDetailed[sampleId] = result_detailed
 
-    s["Betas"] = beta_param
-    s["Sigmas"] = sig
+    s["Beta"] = beta_param
+    s["Sigma"] = sig
     s["InfectedPerDay"] = result
     s["InfectedDetailed"] = result_detailed
-
-    if os.path.isdir('_executor_output') == True:
-        f = open('_executor_output/{0}'.format(fileName), 'a+')
-        np.savetxt(f, np.transpose(result))
-        f.close()
-
-    else:
-        sys.exit('put_normal_rnds: dir \'_executor_output\' does not exist! exit..')
