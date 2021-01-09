@@ -1,0 +1,160 @@
+Sender: LSF System <lsfadmin@eu-ms-018-15>
+Subject: Job 155863109: <python run-tmcmc.py> in cluster <euler> Done
+
+Job <python run-tmcmc.py> was submitted from host <eu-login-31> by user <franzd> in cluster <euler> at Mon Dec 14 07:28:51 2020
+Job was executed on host(s) <eu-ms-018-15>, in queue <normal.120h>, as user <franzd> in cluster <euler> at Mon Dec 14 07:28:58 2020
+</cluster/home/franzd> was used as the home directory.
+</cluster/scratch/franzd/ba/tmcmc_raw_from_ten> was used as the working directory.
+Started at Mon Dec 14 07:28:58 2020
+Terminated at Tue Dec 15 07:50:22 2020
+Results reported at Tue Dec 15 07:50:22 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python run-tmcmc.py
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :                                   175075.00 sec.
+    Max Memory :                                 1573 MB
+    Average Memory :                             1343.98 MB
+    Total Requested Memory :                     1024.00 MB
+    Delta Memory :                               -549.00 MB
+    Max Swap :                                   -
+    Max Processes :                              52
+    Max Threads :                                131
+    Run time :                                   87684 sec.
+    Turnaround time :                            87691 sec.
+
+The output (if any) follows:
+
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #1
+[Korali] Annealing Exponent:          0.000e+00.
+[Korali] Acceptance Rate (proposals / selections): (100.00% / 44.60%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -0.809
+[Korali] max logLikelihood: -51.609
+[Korali] Number of finite evaluations (prior / likelihood): (1000 / 1000)
+[Korali] Sample Mean:
+ beta_param = +3.544e+00
+ [Sigma] = +9.035e+00
+[Korali] Sample Covariance:
+   | +6.452e-02       -       |
+   | +3.563e-02  +6.141e-01   |
+[Korali] Experiment: 0 - Generation Time: 10990.153s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #2
+[Korali] Annealing Exponent:          1.114e-05.
+[Korali] Acceptance Rate (proposals / selections): (92.40% / 45.10%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -1.842
+[Korali] max logLikelihood: -50.172
+[Korali] Number of finite evaluations (prior / likelihood): (955 / 955)
+[Korali] Sample Mean:
+ beta_param = +3.082e+00
+ [Sigma] = +1.071e+01
+[Korali] Sample Covariance:
+   | +1.766e-02       -       |
+   | -1.580e-02  +4.278e-01   |
+[Korali] Experiment: 0 - Generation Time: 10418.018s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #3
+[Korali] Annealing Exponent:          9.433e-04.
+[Korali] Acceptance Rate (proposals / selections): (89.00% / 47.70%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -3.367
+[Korali] max logLikelihood: -50.172
+[Korali] Number of finite evaluations (prior / likelihood): (959 / 959)
+[Korali] Sample Mean:
+ beta_param = +3.348e+00
+ [Sigma] = +1.150e+01
+[Korali] Sample Covariance:
+   | +3.728e-03       -       |
+   | -5.820e-03  +3.051e-01   |
+[Korali] Experiment: 0 - Generation Time: 11116.797s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #4
+[Korali] Annealing Exponent:          7.849e-03.
+[Korali] Acceptance Rate (proposals / selections): (88.60% / 44.90%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -5.640
+[Korali] max logLikelihood: -50.172
+[Korali] Number of finite evaluations (prior / likelihood): (959 / 959)
+[Korali] Sample Mean:
+ beta_param = +3.438e+00
+ [Sigma] = +1.243e+01
+[Korali] Sample Covariance:
+   | +6.357e-04       -       |
+   | -6.653e-04  +1.218e-01   |
+[Korali] Experiment: 0 - Generation Time: 11104.917s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #5
+[Korali] Annealing Exponent:          3.078e-02.
+[Korali] Acceptance Rate (proposals / selections): (90.40% / 46.80%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -13.550
+[Korali] max logLikelihood: -50.172
+[Korali] Number of finite evaluations (prior / likelihood): (967 / 967)
+[Korali] Sample Mean:
+ beta_param = +3.445e+00
+ [Sigma] = +1.336e+01
+[Korali] Sample Covariance:
+   | +1.167e-04       -       |
+   | -4.411e-04  +4.903e-02   |
+[Korali] Experiment: 0 - Generation Time: 10375.922s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #6
+[Korali] Annealing Exponent:          1.621e-01.
+[Korali] Acceptance Rate (proposals / selections): (92.80% / 48.30%)
+[Korali] Coefficient of Variation: 100.00%
+[Korali] logEvidence: -33.059
+[Korali] max logLikelihood: -50.113
+[Korali] Number of finite evaluations (prior / likelihood): (978 / 978)
+[Korali] Sample Mean:
+ beta_param = +3.443e+00
+ [Sigma] = +1.421e+01
+[Korali] Sample Covariance:
+   | +4.319e-05       -       |
+   | -2.236e-04  +1.702e-02   |
+[Korali] Experiment: 0 - Generation Time: 11144.233s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #7
+[Korali] Annealing Exponent:          5.235e-01.
+[Korali] Acceptance Rate (proposals / selections): (89.40% / 54.80%)
+[Korali] Coefficient of Variation: 136.05%
+[Korali] logEvidence: -57.835
+[Korali] max logLikelihood: -50.113
+[Korali] Number of finite evaluations (prior / likelihood): (965 / 965)
+[Korali] Sample Mean:
+ beta_param = +3.442e+00
+ [Sigma] = +1.448e+01
+[Korali] Sample Covariance:
+   | +2.721e-05       -       |
+   | -1.183e-04  +7.989e-03   |
+[Korali] Experiment: 0 - Generation Time: 11328.719s
+[Korali] --------------------------------------------------------------------
+[Korali] Current Generation: #8
+[Korali] Annealing Exponent:          1.000e+00.
+[Korali] Acceptance Rate (proposals / selections): (88.20% / 63.00%)
+[Korali] Coefficient of Variation: 200.00%
+[Korali] logEvidence: -57.835
+[Korali] max logLikelihood: -50.094
+[Korali] Number of finite evaluations (prior / likelihood): (964 / 964)
+[Korali] Sample Mean:
+ beta_param = +3.443e+00
+ [Sigma] = +1.428e+01
+[Korali] Sample Covariance:
+   | +4.138e-05       -       |
+   | -2.470e-04  +1.238e-02   |
+[Korali] Experiment: 0 - Generation Time: 11202.855s
+[Korali] --------------------------------------------------------------------
+[Korali] Sampler/TMCMC finished correctly.
+[Korali] Termination Criterion Met: TMCMC['Target Annealing Exponent'] = 1.000000.
+[Korali] Final Generation: 8
+[Korali] Elapsed Time: 87682.478s

@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import shapefile
 import os
+import glob
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
@@ -20,15 +21,19 @@ import numpy as np
 import math
 
 # define all needed parameters
-T = 60.0                                # final time in days
-dt = 4.0 / 24.0                         # time step size at beginning
+T = 120.0                                # final time in days
+deltat = 1.0 / 24.0
+dt = Constant(deltat)                         # time step size at beginning
 theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-beta_factor = 0.1
+beta_factor = Constant(2.802)
 oneoverd = Constant(1.0 / 5.0)          # one over average duration of infection
 oneoverz = Constant(1.0 / 5.0)          # one over average latency period
 
 theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
 t = 0.0                                 # global time
+result = []
+area_switzerland = 41285000000.0
+bev_switzerland = 8570000.0
 
 # get mesh from file in folder mesh
 mesh = Mesh('mesh/mesh2d.xml.gz')
@@ -58,11 +63,10 @@ source_i_n = Function(W)
 name = 100000
 
 # setting Initial Conditions
-# 0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))
 SEI_0 = Expression(('1.0',
                     '0.0',
-                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))'),
-                   degree=2)
+                    '0.0084856 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))'),
+                    degree=2)
 SEI_n = project(SEI_0, V)
 
 # Diffusion, inverse population density and beta from files
@@ -96,6 +100,8 @@ beta = project(beta_factor * f3, W)
 _S_0, _E_0, _I_0 = SEI_n.split()
 _d_s, _d_i, _d_r = d.split()
 _rhoinv1, _rhoinv2, _rhoinv3 = rhoinv.split()
+
+result.append(assemble(_I_0 * dx) * bev_switzerland / area_switzerland)
 
 f_out = XDMFFile("Videomaker/functions/checkdiff.xdmf")
 f_out.write_checkpoint(project(_d_s, W), "diff", 0, XDMFFile.Encoding.HDF5, True)
@@ -289,17 +295,14 @@ if 1 == 1:
     cantonfun.append(c25)
     cantonfun.append(c26)
 
+# Define source term for long connections
+source_s_0 = Expression('0.0', degree=2)
+source_e_0 = Expression('0.0', degree=2)
+source_i_0 = Expression('0.0', degree=2)
+
 # time stepping
 n = 0
 while t < T:
-    # Define source term for long connections
-    source_s_0 = Expression('0.0', degree=2)
-    source_s_n = project(source_s_0, W)
-    source_e_0 = Expression('0.0', degree=2)
-    source_e_n = project(source_e_0, W)
-    source_i_0 = Expression('0.0', degree=2)
-    source_i_n = project(source_i_0, W)
-
     # compute number of susceptible, exposed and infected in every canton in advance and save as array
     array_S_n = [0.0]
     array_E_n = [0.0]
@@ -311,12 +314,12 @@ while t < T:
 
     k = 1
     while k < 27:
-        array_S_n.append(assemble(S_n * cantonfun[k] * dx))
-        array_E_n.append(assemble(E_n * cantonfun[k] * dx))
-        array_I_n.append(assemble(I_n * cantonfun[k] * dx))
+        array_S_n.append(Constant(assemble(S_n * cantonfun[k] * dx)))
+        array_E_n.append(Constant(assemble(E_n * cantonfun[k] * dx)))
+        array_I_n.append(Constant(assemble(I_n * cantonfun[k] * dx)))
         k += 1
 
-    # calculate source terms for current time, low dt, half dt and high dt
+    # calculate source terms for current time
     print("initializing sources now ...")
     ID_KT_i = 1
     while ID_KT_i < 27:
@@ -340,7 +343,7 @@ while t < T:
     coeff_s = array_factor_S_n
     coeff_e = array_factor_E_n
     coeff_i = array_factor_I_n
-    source_s_n = project(source_s_n + coeff_s[1] * c1 + coeff_s[2] * c2 + \
+    source_s_n = project(source_s_0 + coeff_s[1] * c1 + coeff_s[2] * c2 + \
                          coeff_s[3] * c3 + coeff_s[4] * c4 + coeff_s[5] * c5 + \
                          coeff_s[6] * c6 + coeff_s[7] * c7 + coeff_s[8] * c8 + \
                          coeff_s[9] * c9 + coeff_s[10] * c10 + coeff_s[11] * c11 + \
@@ -350,7 +353,7 @@ while t < T:
                          coeff_s[21] * c21 + coeff_s[22] * c22 + coeff_s[23] * c23 + \
                          coeff_s[24] * c24 + coeff_s[25] * c25 + coeff_s[26] * c26)
 
-    source_e_n = project(source_e_n + coeff_e[1] * c1 + coeff_e[2] * c2 + \
+    source_e_n = project(source_e_0 + coeff_e[1] * c1 + coeff_e[2] * c2 + \
                          coeff_e[3] * c3 + coeff_e[4] * c4 + coeff_e[5] * c5 + \
                          coeff_e[6] * c6 + coeff_e[7] * c7 + coeff_e[8] * c8 + \
                          coeff_e[9] * c9 + coeff_e[10] * c10 + coeff_e[11] * c11 + \
@@ -360,7 +363,7 @@ while t < T:
                          coeff_e[21] * c21 + coeff_e[22] * c22 + coeff_e[23] * c23 + \
                          coeff_e[24] * c24 + coeff_e[25] * c25 + coeff_e[26] * c26)
 
-    source_i_n = project(source_i_n + coeff_i[1] * c1 + coeff_i[2] * c2 + \
+    source_i_n = project(source_i_0 + coeff_i[1] * c1 + coeff_i[2] * c2 + \
                          coeff_i[3] * c3 + coeff_i[4] * c4 + coeff_i[5] * c5 + \
                          coeff_i[6] * c6 + coeff_i[7] * c7 + coeff_i[8] * c8 + \
                          coeff_i[9] * c9 + coeff_i[10] * c10 + coeff_i[11] * c11 + \
@@ -391,12 +394,12 @@ while t < T:
     solve(F == 0, SEI_low, J=Jac)
 
     n += 1
-    t += dt
+    t += deltat
     print("This is iteration number: ", n)
     print("And the time is: ", t)
 
     # if error small enough or minimum timestep reached, update and go to the next timestep
-    if n%6 == 0:
+    if n%24 == 0:
         _S, _E, _I = SEI_low.split()
         f_out = XDMFFile("Videomaker/functions/function_S.xdmf")
         f_out.write_checkpoint(project(_S, W), "S", name, XDMFFile.Encoding.HDF5, True)
@@ -410,7 +413,10 @@ while t < T:
         f_out.write_checkpoint(project(_I, W), "I", name, XDMFFile.Encoding.HDF5, True)
         f_out.close()
 
+        result.append(assemble(_I * dx) * bev_switzerland / area_switzerland)
+
         name += 1
 
     SEI_n.assign(SEI_low)
 
+print(result)

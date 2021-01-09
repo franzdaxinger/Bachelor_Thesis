@@ -21,16 +21,16 @@ import math
 import dijitso
 
 # define all needed parameters
-T = 60.0                                # final time in days
-dt = 4.0 / 24.0                         # time step size at beginning
+T = 120.0                               # final time in days
+deltat = 1.0 / 24.0
+dt = Constant(deltat)                   # time step size at beginning
 theta_factor = Constant(1.1)            # factor to represent the underreporting of movement
-beta_factor = 1.1
+beta_factor = Constant(2.802)
 oneoverd = Constant(1.0 / 5.0)          # one over average duration of infection
 oneoverz = Constant(1.0 / 5.0)          # one over average latency period
 
 theta = Constant(0.5)                   # theta = 0.5 means Crank-Nicolson
 t = 0.0                                 # global time
-timestep = [0.0]                        # array to safe the timesteps
 rho = 0.01                              # safety factor
 tol = 10.0                              # tolerance of the l2 norm
 toldt = 0.01                            # smallest allowed timestep
@@ -65,11 +65,10 @@ source_i_n = Function(W)
 name = 100000
 
 # setting Initial Conditions
-# 0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))
 SEI_0 = Expression(('1.0',
-                    '0.01 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))',
-                    '0.0'),
-                   degree=2)
+                    '0.0',
+                    '0.0084856 * exp(-0.00000039*(pow(x[0]-720000.0,2)+pow(x[1]-130000.0,2)))'),
+                    degree=2)
 SEI_n = project(SEI_0, V)
 
 # Diffusion, inverse population density and beta from files
@@ -298,17 +297,14 @@ if 1 == 1:
     cantonfun.append(c25)
     cantonfun.append(c26)
 
+# Define source term for long connections
+source_s_0 = Expression('0.0', degree=2)
+source_e_0 = Expression('0.0', degree=2)
+source_i_0 = Expression('0.0', degree=2)
+
 # time stepping
 n = 0
 while t < T:
-    # Define source term for long connections
-    source_s_0 = Expression('0.0', degree=2)
-    source_s_n = project(source_s_0, W)
-    source_e_0 = Expression('0.0', degree=2)
-    source_e_n = project(source_e_0, W)
-    source_i_0 = Expression('0.0', degree=2)
-    source_i_n = project(source_i_0, W)
-
     # compute number of susceptible, exposed and infected in every canton in advance and save as array
     array_S_n = [0.0]
     array_E_n = [0.0]
