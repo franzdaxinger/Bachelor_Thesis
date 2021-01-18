@@ -38,14 +38,14 @@ id_mun = municipalities['ID_Gem'].to_numpy()
 # get array with area of every municipality
 area = municipalities.area.to_numpy()
 
-# for every municipality check which are neighboring municipalities and compute diffusion to them
+# for every municipality check which are neighbouring municipalities and compute diffusion to them
 num_municipality = 0
 while num_municipality < length:
     number = 0
     diffusion_coefficient = 0.0
 
     someSpecialGeometry = municipalities['geometry'].values[num_municipality]
-    municipalities['isNeighbor'] = municipalities.apply(lambda row: row['geometry'].touches(someSpecialGeometry), axis=1)
+    municipalities['isNeighbour'] = municipalities.apply(lambda row: row['geometry'].touches(someSpecialGeometry), axis=1)
 
     id_gem = municipalities['ID_Gem'].values[num_municipality]
     num_inhabitants = -1
@@ -67,7 +67,7 @@ while num_municipality < length:
                 if municipalities['ID_Gem'].values[k] == id_work:
                     num_work = k
 
-            if municipalities['isNeighbor'].values[num_work] == True:
+            if municipalities['isNeighbour'].values[num_work] == True:
                 mun1 = municipalities.geometry[num_municipality]
                 mun2 = municipalities.geometry[num_work]
                 borderline = mun1.intersection(mun2)

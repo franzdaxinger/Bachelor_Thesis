@@ -70,7 +70,7 @@ class MyExpression0(UserExpression):
             dens = 400000.0
         if a > -1:
             value[0] = dens
-            value[1] = diff + 500.0      # add 500 to represent non-work-related movement to avoid diffusion zero in areas with no commuters to neighboring municipalities
+            value[1] = diff + 500.0      # add 500 to represent non-work-related movement to avoid diffusion zero in areas with no commuters to neighbouring municipalities
             value[2] = beta
     def value_shape(self):
         return (3,)
