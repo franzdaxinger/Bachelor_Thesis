@@ -4,10 +4,10 @@ Bayesian Inference for Spatial Epidemic Models
 This project is supposed to run on the ETH euler cluster. To load the required 
 modules, execute first:
 
-env2lmod \n
-module load gcc/6.3.0 openmpi/3.0.1 fenics/2019.1.0_slepc \n
-export OMP_NUM_THREADS=1 \n
-export MPICXX=mpicxx \n
+env2lmod  
+module load gcc/6.3.0 openmpi/3.0.1 fenics/2019.1.0_slepc  
+export OMP_NUM_THREADS=1  
+export MPICXX=mpicxx  
 
 
 The folder /data contains the raw data used to build the epidemic model.
