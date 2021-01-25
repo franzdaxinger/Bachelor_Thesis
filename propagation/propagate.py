@@ -15,7 +15,7 @@ N  = len(d['Samples'])
 Ny = len( d['Samples'][0][var] )
 
 
-x = range(Ny)
+x = np.linspace(0,9,Ny)
 
 y = np.zeros((N,Ny))
 s = np.zeros((N,Ny))
@@ -51,12 +51,16 @@ ax.plot( x, mean, '-', lw=2, label='Mean', color='black')
 ax.plot( x, median, '--', lw=2, label='Median', color='black')
 
 data = [1, 2, 12, 22, 32, 45, 56, 87, 120, 181]
-days = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+days = [0.1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 ax.plot(days, data, 'or', label='Reference Data')
 
 ax.legend(loc='upper left')
 ax.grid()
 ax.set_xlim(left=x[1])
+ax.set_xlabel('days')
+ax.set_ylabel('number of infected')
+ax.set_xticklabels([])
+
 
 plt.show()
 plt.savefig('propagation.jpg')
